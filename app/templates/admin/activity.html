@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico %}
+{% block content %}
+<section class="grid g-side">
+  <div>
+    <form class="filters" method="get">
+      <label class="f"><span>User</span><select name="user"><option value="">Everyone</option>{% for u in users %}<option value="{{ u.id }}" {{ 'selected' if q.get('user') == u.id|string }}>{{ u.full_name }}</option>{% endfor %}</select></label>
+      <label class="f"><span>Type</span><select name="action"><option value="">All, including page views</option><option value="changes" {{ 'selected' if q.get('action') == 'changes' }}>Changes only</option>
+        {% for a in ['login','login_failed','create','update','delete','upload','download','review','stage','reassign','export'] %}<option value="{{ a }}" {{ 'selected' if q.get('action') == a }}>{{ a.replace('_',' ')|capitalize }}</option>{% endfor %}</select></label>
+      <label class="f"><span>Day</span><input type="date" name="day" value="{{ q.get('day','') }}"></label>
+      {% if q.get('session') %}<input type="hidden" name="session" value="{{ q.get('session') }}">{% endif %}
+      <button class="btn ghost">Filter</button>
+    </form>
+    <div class="card flush"><div class="table-wrap"><table>
+      <thead><tr><th>Time (EAT)</th><th>User</th><th>Action</th><th>Detail</th><th>IP</th></tr></thead>
+      <tbody>{% for r in rows %}
+        <tr><td class="nowrap">{{ r.at|eat('%d %b %H:%M:%S') }}</td><td>{{ r.user.full_name if r.user else '-' }}</td>
+          <td><span class="badge {{ {'view':'muted','login':'good','logout':'muted','login_failed':'bad','delete':'bad','create':'blue','update':'sand','review':'teal','reassign':'warn'}.get(r.action, 'blue') }}">{{ r.action.replace('_',' ') }}</span></td>
+          <td>{{ r.summary or '' }}{% if r.changes %}<details><summary class="small">Changes</summary><code class="small">{{ r.changes }}</code></details>{% endif %}</td>
+          <td class="small muted">{{ r.ip or '' }}</td></tr>
+      {% else %}<tr><td colspan="5" class="empty">No activity found.</td></tr>{% endfor %}</tbody>
+    </table></div></div>
+    <div class="actions mt">{% if page > 1 %}<a class="btn ghost sm" href="?{{ q|urlencode|replace('page=' ~ page, '') }}&page={{ page - 1 }}">Newer</a>{% endif %}
+      {% if rows|length == 100 %}<a class="btn ghost sm" href="?{{ q|urlencode|replace('page=' ~ page, '') }}&page={{ page + 1 }}">Older</a>{% endif %}</div>
+  </div>
+  <div class="card"><h3>Sessions</h3>
+    <ul class="list">{% for s in sessions %}
+      <li><div class="grow"><strong>{{ s.user.full_name }}</strong>
+        <div class="small muted">In {{ s.login_at|eat('%d %b %H:%M') }} · {{ s.duration_minutes }} min · {% if s.ended_at %}{{ s.end_reason }} {{ s.ended_at|eat('%H:%M') }}{% else %}<span class="badge good">active</span>{% endif %}</div></div>
+        <a class="btn sm ghost" href="/admin/activity?session={{ s.id }}">View</a></li>
+    {% else %}<li class="muted">No sessions.</li>{% endfor %}</ul></div>
+</section>
+{% endblock %}

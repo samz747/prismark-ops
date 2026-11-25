@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico %}
+{% block content %}
+<section class="grid g4 mb">
+  {% for label, val in buckets.items() %}
+  <div class="card kpi">{{ ico('clock', ['teal','sand','sand','red','red'][loop.index0], 'sm') }}<div><div class="k">{{ label }}</div><div class="v">{{ val|tzs(False) }}</div></div></div>
+  {% if loop.index == 4 %}{% endif %}
+  {% endfor %}
+</section>
+{% if pending %}
+<div class="attention">{{ ico('shield','sand','sm') }}<div><strong>{{ pending|length }} payment{{ 's' if pending|length > 1 }} waiting for MD confirmation.</strong><br>
+  They show as pending on the sales side until the Managing Director acknowledges receipt.</div></div>
+{% endif %}
+<nav class="tabs">
+  {% for k, l in [('','All'),('unpaid','Unpaid'),('overdue','Overdue'),('pending','Pending confirmation'),('paid','Paid')] %}
+  <a href="?status={{ k }}" class="{{ 'on' if q.get('status','') == k }}">{{ l }}</a>{% endfor %}
+</nav>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Invoice</th><th>Customer</th><th>Order</th><th>Issued</th><th>Due</th><th class="num">Total (TZS)</th><th class="num">Balance (TZS)</th><th>Status</th></tr></thead>
+  <tbody>{% for i, st, bal in data %}
+    <tr><td><a class="row-link" href="/finance/invoices/{{ i.id }}">{{ i.number }}</a>{% if i.currency != 'TZS' %}<div class="small muted">{{ i.total|money(i.currency) }}</div>{% endif %}</td>
+      <td>{{ i.customer.company_name }}</td><td><a href="/orders/{{ i.order_id }}">{{ i.order.ref }}</a></td>
+      <td class="nowrap">{{ i.issue_date|dfmt }}</td><td class="nowrap">{{ i.due_date|dfmt }}</td>
+      <td class="num">{{ i.total_tzs|tzs(False) }}</td><td class="num">{{ [bal, 0]|max|tzs(False) }}</td>
+      <td><span class="badge {{ {'paid':'good','pending':'warn','overdue':'bad','unpaid':'blue'}[st] }}">{{ {'paid':'Paid','pending':'Pending confirmation','overdue':'Overdue','unpaid':'Unpaid'}[st] }}</span></td></tr>
+  {% else %}<tr><td colspan="8" class="empty">No invoices.</td></tr>{% endfor %}</tbody>
+  <tfoot><tr><td colspan="6">Total outstanding</td><td class="num">{{ total_out|tzs(False) }}</td><td></td></tr></tfoot>
+</table></div></div>
+{% endblock %}

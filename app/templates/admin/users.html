@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico %}
+{% block top_actions %}<a class="btn" href="/admin/users/new">{{ icon('plus') }} New user</a>{% endblock %}
+{% block content %}
+<div class="attention">{{ ico('lock','sand','sm') }}<div><strong>No self registration.</strong><br>Only a super admin creates accounts and hands out the temporary password. Each person must set their own password at first login.</div></div>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>User</th><th>Username</th><th>Roles</th><th>Last login</th><th>Status</th><th></th></tr></thead>
+  <tbody>{% for u in users %}
+    <tr><td><div class="actions"><div class="avatar">{{ u.initials }}</div><div><strong>{{ u.full_name }}</strong><div class="small muted">{{ u.job_title or '' }}</div></div></div></td>
+      <td>{{ u.username }}</td>
+      <td class="pill-row">{% if u.is_superadmin %}<span class="badge navy">Super admin</span>{% endif %}{% for r in u.role_list %}<span class="badge blue">{{ ROLES[r] }}</span>{% endfor %}</td>
+      <td class="nowrap">{{ u.last_login_at|eat if u.last_login_at else 'Never' }}{% if u.id in online %} <span class="badge good">Online</span>{% endif %}</td>
+      <td>{% if not u.is_active %}<span class="badge muted">Deactivated</span>{% elif u.locked_until and u.locked_until > now %}<span class="badge bad">Locked</span>{% elif u.must_change_password %}<span class="badge warn">Temp password</span>{% else %}<span class="badge good">Active</span>{% endif %}</td>
+      <td class="right"><a class="btn sm ghost" href="/admin/users/{{ u.id }}">Manage</a> <a class="btn sm ghost" href="/admin/activity?user={{ u.id }}">Activity</a></td></tr>
+  {% endfor %}</tbody>
+</table></div></div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf %}
+{% block crumb %}<a href="/admin/users">Users & access</a>{% endblock %}
+{% block heading %}{{ u.full_name if u else 'New user' }}{% endblock %}
+{% block content %}
+<script type="application/json" id="role-templates">{{ templates_json|tojson }}</script>
+<section class="grid g-side">
+  <form method="post" class="card">{{ csrf(ctx) }}
+    <h2>Details</h2>
+    <div class="form-grid">
+      <label class="f"><span>Full name <em>*</em></span><input type="text" name="full_name" required maxlength="120" value="{{ u.full_name if u }}"></label>
+      <label class="f"><span>Username <em>*</em></span><input type="text" name="username" {{ 'disabled' if u else 'required' }} maxlength="40" pattern="[a-z0-9._]{3,40}" value="{{ u.username if u }}" placeholder="e.g. amina.juma"></label>
+      <label class="f"><span>Job title</span><input type="text" name="job_title" maxlength="80" value="{{ u.job_title or '' if u }}"></label>
+      <label class="f"><span>Phone</span><input type="tel" name="phone" maxlength="40" value="{{ u.phone or '' if u }}"></label>
+      <label class="f full"><span>Email</span><input type="email" name="email" maxlength="160" value="{{ u.email or '' if u }}"></label>
+    </div>
+    <div class="sep"></div>
+    <h2>Roles</h2>
+    <p class="hint">A person can hold several roles. Roles only pre-fill the access below; you decide the final access.</p>
+    <div class="pill-row mt">
+      {% for key, label in ROLES.items() %}<label class="check badge"><input type="checkbox" name="roles" value="{{ key }}" {{ 'checked' if u and key in u.role_list }}> {{ label }}</label>{% endfor %}
+    </div>
+    <label class="check mt"><input type="checkbox" name="is_superadmin" value="1" {{ 'checked' if u and u.is_superadmin }}> Super admin (Managing Director or backup admin: full control, user management, approvals)</label>
+    <div class="sep"></div>
+    <div class="card-head"><h2>Access by area</h2><button type="button" class="btn ghost sm js-apply-roles">Apply role templates</button></div>
+    <div class="table-wrap matrix"><table>
+      <thead><tr><th>Area</th><th>Access</th><th>Meaning</th></tr></thead>
+      <tbody>{% for area, label in AREAS.items() %}
+        <tr><td><strong>{{ label }}</strong></td>
+          <td><select name="perm_{{ area }}" data-area="{{ area }}">{% for l in LEVELS %}<option value="{{ l }}" {{ 'selected' if perms[area] == l }}>{{ LEVEL_LABELS[l] }}</option>{% endfor %}</select></td>
+          <td class="small muted">{{ AREA_HELP[area] }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <p class="hint">Super admins always have full access. Approvals, reassigning customers and user management stay with super admins only.</p>
+    <div class="form-actions"><a class="btn ghost" href="/admin/users">Cancel</a><button class="btn" type="submit">{{ 'Save user' if u else 'Create user' }}</button></div>
+  </form>
+
+  {% if u %}
+  <div>
+    <div class="card"><h3>Account actions</h3>
+      <div class="actions mt">
+        {% for act, label, cls, conf in [('reset_password','Reset password','sand','Generate a new temporary password and sign this user out?'),('unlock','Unlock','ghost',''),('end_sessions','Sign out everywhere','ghost','End all sessions of this user?'),('deactivate' if u.is_active else 'activate', 'Deactivate' if u.is_active else 'Activate', 'danger' if u.is_active else 'good', 'Change this account status?')] %}
+        <form method="post" action="/admin/users/{{ u.id }}/action" {% if conf %}data-confirm="{{ conf }}"{% endif %}>{{ csrf(ctx) }}<input type="hidden" name="action" value="{{ act }}"><button class="btn sm {{ cls }}" type="submit">{{ label }}</button></form>
+        {% endfor %}
+      </div>
+      <dl class="dl mt"><dt>Created</dt><dd>{{ u.created_at|eat }}</dd><dt>Last login</dt><dd>{{ u.last_login_at|eat if u.last_login_at else 'Never' }}</dd>
+        <dt>Failed attempts</dt><dd>{{ u.failed_logins }}{% if u.locked_until %} · locked until {{ u.locked_until|eat }}{% endif %}</dd></dl>
+    </div>
+    <div class="card mt"><div class="card-head"><h3>Recent sessions</h3><a class="btn sm ghost" href="/admin/activity?user={{ u.id }}">All activity</a></div>
+      <ul class="list">{% for s in sessions %}
+        <li><div class="grow"><strong>{{ s.login_at|eat }}</strong><div class="small muted">{{ s.duration_minutes }} min · {{ s.ip }} · {{ s.end_reason or 'active' }}</div></div>
+          <a class="btn sm ghost" href="/admin/activity?session={{ s.id }}">Actions</a></li>
+      {% else %}<li class="muted">Never signed in.</li>{% endfor %}</ul></div>
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge %}
+{% macro status_form(a, back='/tasks') %}
+<form method="post" action="/tasks/status/{{ a.id }}" class="actions">{{ csrf(ctx) }}<input type="hidden" name="back" value="{{ back }}">
+  {% if a.status != 'done' %}{% if a.status == 'open' and a.task.kind != 'todo' %}<button class="btn sm ghost" name="status" value="in_progress">Start</button>{% endif %}<button class="btn sm good" name="status" value="done">{{ icon('check') }} Done</button>
+  {% else %}<button class="btn sm ghost" name="status" value="open">Reopen</button>{% endif %}
+</form>
+{% endmacro %}
+{% macro prio(p) %}<span class="badge {{ {'low':'muted','normal':'blue','high':'warn','urgent':'bad'}[p] }}">{{ p|capitalize }}</span>{% endmacro %}
+{% block content %}
+<section class="grid g-side">
+  <div>
+    <div class="card">
+      <div class="card-head">{{ ico('calendar','teal','sm') }}<h2>My schedule · {{ day|dfmt }}</h2>
+        <a class="btn ghost sm" href="?day={{ prev }}">&larr;</a><a class="btn ghost sm" href="?day={{ next }}">&rarr;</a></div>
+      <div class="timeline">
+        {% for a in schedule %}
+        <div class="t {{ 'teal' if a.status == 'done' else '' }}"><strong>{{ a.task.start_time }} to {{ a.task.end_time }}</strong> · {{ a.task.title }}
+          {% if a.task.customer %}<span class="small muted"> · <a href="/customers/{{ a.task.customer_id }}">{{ a.task.customer.company_name }}</a></span>{% endif %}
+          {% if a.task.details %}<div class="small muted">{{ a.task.details }}</div>{% endif %}
+          <div class="mt">{{ status_form(a, '/tasks?day=' ~ day.isoformat()) }}</div></div>
+        {% else %}<p class="muted">Nothing planned for this day.</p>{% endfor %}
+      </div>
+      <details class="box mt"><summary>Plan an activity</summary>
+        <form method="post" action="/tasks/schedule" class="form-grid three">{{ csrf(ctx) }}
+          <label class="f full"><span>Activity</span><input type="text" name="title" required maxlength="200" placeholder="e.g. Visit client stores, prepare bid"></label>
+          <label class="f"><span>Date</span><input type="date" name="on_date" value="{{ day.isoformat() }}"></label>
+          <label class="f"><span>From</span><input type="time" name="start_time" required></label>
+          <label class="f"><span>To</span><input type="time" name="end_time" required></label>
+          {% if customers %}<label class="f full"><span>Customer (optional)</span><select name="customer_id"><option value="">None</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.company_name }}</option>{% endfor %}</select></label>{% endif %}
+          <label class="f full"><span>Details</span><input type="text" name="details" maxlength="500"></label>
+          <div class="full actions"><button class="btn sm teal" type="submit">Add to schedule</button><span class="hint">It also appears on the notice board.</span></div>
+        </form></details>
+    </div>
+
+    <div class="card mt">
+      <div class="card-head">{{ ico('shield','navy','sm') }}<h2>Assigned to me</h2></div>
+      <ul class="list">{% for a in assigned %}
+        <li><div class="grow"><strong>{{ a.task.title }}</strong> {{ prio(a.task.priority) }} {{ status_badge(a.status) }}
+          <div class="small muted">From {{ a.task.created_by.full_name }}{% if a.task.due_date %} · due {{ a.task.due_date|dfmt }}{% endif %}{% if a.task.assignees|length > 1 %} · with {{ a.task.assignees|rejectattr('user_id','equalto',ctx.user.id)|map(attribute='user.full_name')|join(', ') }}{% endif %}</div>
+          {% if a.task.details %}<div class="small">{{ a.task.details }}</div>{% endif %}</div>
+          {{ status_form(a) }}</li>
+      {% else %}<li class="muted">Nothing assigned to you.</li>{% endfor %}</ul>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-head">{{ ico('tasks','sand','sm') }}<h2>My to do</h2></div>
+      <ul class="list">{% for a in todos %}
+        <li><div class="grow">{% if a.status == 'done' %}<s class="muted">{{ a.task.title }}</s>{% else %}<strong>{{ a.task.title }}</strong>{% endif %}
+          <div class="small muted">{{ prio(a.task.priority) }}{% if a.task.due_date %} due {{ a.task.due_date|dfmt }}{% endif %}</div></div>
+          {{ status_form(a) }}
+          <form method="post" action="/tasks/{{ a.task_id }}/delete">{{ csrf(ctx) }}<button class="link small">{{ icon('x') }}</button></form></li>
+      {% else %}<li class="muted">Your list is empty.</li>{% endfor %}</ul>
+      <form method="post" action="/tasks/todo" class="form-grid mt">{{ csrf(ctx) }}
+        <label class="f full"><span>New item</span><input type="text" name="title" required maxlength="200"></label>
+        <label class="f"><span>Priority</span><select name="priority">{% for p in PRIORITIES %}<option value="{{ p }}" {{ 'selected' if p == 'normal' }}>{{ p|capitalize }}</option>{% endfor %}</select></label>
+        <label class="f"><span>Due</span><input type="date" name="due_date"></label>
+        <div class="full actions"><button class="btn sm" type="submit">Add</button></div>
+      </form>
+    </div>
+
+    {% if can_assign %}
+    <div class="card mt">
+      <h3>Assign a task</h3>
+      <form method="post" action="/tasks/assign">{{ csrf(ctx) }}
+        <label class="f mb"><span>Task</span><input type="text" name="title" required maxlength="200"></label>
+        <label class="f mb"><span>Details</span><textarea name="details"></textarea></label>
+        <div class="form-grid">
+          <label class="f"><span>Priority</span><select name="priority">{% for p in PRIORITIES %}<option value="{{ p }}" {{ 'selected' if p == 'normal' }}>{{ p|capitalize }}</option>{% endfor %}</select></label>
+          <label class="f"><span>Due date</span><input type="date" name="due_date"></label>
+          <label class="f"><span>Do on (optional)</span><input type="date" name="on_date"></label>
+          <label class="f"><span>Time (optional)</span><input type="time" name="start_time"></label>
+        </div>
+        <div class="mt"><span class="small"><strong>Assign to</strong></span>
+          {% for s in staff %}<label class="check"><input type="checkbox" name="assignees" value="{{ s.id }}"> {{ s.full_name }}</label>{% endfor %}</div>
+        <div class="form-actions"><button class="btn navy" type="submit">Assign</button></div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% if by_me %}
+<div class="card flush mt2"><div class="card-head"><h2>Tasks I assigned</h2></div><div class="table-wrap"><table>
+  <thead><tr><th>Task</th><th>Due</th><th>Progress by person</th><th></th></tr></thead>
+  <tbody>{% for t in by_me %}<tr><td><strong>{{ t.title }}</strong> {{ prio(t.priority) }}</td><td class="nowrap">{{ t.due_date|dfmt }}</td>
+    <td class="pill-row">{% for a in t.assignees %}<span class="badge {{ {'open':'muted','in_progress':'blue','done':'good'}[a.status] }}">{{ a.user.full_name }}: {{ a.status.replace('_',' ') }}</span>{% endfor %}</td>
+    <td><form method="post" action="/tasks/{{ t.id }}/delete" data-confirm="Delete this task for everyone?">{{ csrf(ctx) }}<button class="link small">Delete</button></form></td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

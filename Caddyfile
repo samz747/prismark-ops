@@ -1,0 +1,9 @@
+# Automatic HTTPS certificate for your domain (set DOMAIN in .env)
+{$DOMAIN} {
+	encode gzip
+	request_body {
+		max_size 20MB
+	}
+	reverse_proxy app:8000
+	header -Server
+}

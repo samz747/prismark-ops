@@ -1,0 +1,76 @@
+{# Abstract 3D sculpture. `p` is a unique id prefix. #}
+<svg class="{{ cls|default('art') }}" viewBox="0 0 800 900" preserveAspectRatio="xMidYMid slice" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="{{p}}sph" cx="35%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".18" stop-color="#C9EEEC"/>
+      <stop offset=".55" stop-color="#35BFC2"/><stop offset="1" stop-color="#07545A"/>
+    </radialGradient>
+    <radialGradient id="{{p}}sph2" cx="35%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".2" stop-color="#A9C3F0"/>
+      <stop offset=".6" stop-color="#3D72CF"/><stop offset="1" stop-color="#091739"/>
+    </radialGradient>
+    <radialGradient id="{{p}}sand" cx="35%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".3" stop-color="#F1E1C8"/>
+      <stop offset=".75" stop-color="#D6B995"/><stop offset="1" stop-color="#9C7848"/>
+    </radialGradient>
+    <linearGradient id="{{p}}glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".42"/><stop offset="1" stop-color="#FFFFFF" stop-opacity=".06"/>
+    </linearGradient>
+    <linearGradient id="{{p}}rib" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8ED4D0" stop-opacity="0"/><stop offset=".35" stop-color="#8ED4D0" stop-opacity=".75"/>
+      <stop offset="1" stop-color="#3D72CF" stop-opacity=".9"/>
+    </linearGradient>
+    <linearGradient id="{{p}}rib2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2C59A8"/><stop offset="1" stop-color="#091739"/>
+    </linearGradient>
+    <linearGradient id="{{p}}wing" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6C96DE"/><stop offset=".5" stop-color="#2C59A8"/><stop offset="1" stop-color="#14306A"/>
+    </linearGradient>
+    <linearGradient id="{{p}}ring" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset=".4" stop-color="#8ED4D0"/><stop offset="1" stop-color="#087F83"/>
+    </linearGradient>
+    <filter id="{{p}}sh" x="-30%" y="-30%" width="160%" height="170%">
+      <feDropShadow dx="0" dy="22" stdDeviation="20" flood-color="#050D22" flood-opacity=".45"/>
+    </filter>
+    <filter id="{{p}}blur"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+
+  <!-- flowing ribbons -->
+  <path d="M-40 700 C160 600 300 780 480 690 S760 560 860 620 L860 940 L-40 940 Z" fill="url(#{{p}}rib2)" opacity=".55"/>
+  <path d="M-40 640 C140 560 320 720 500 640 S770 500 860 560" fill="none" stroke="url(#{{p}}rib)" stroke-width="34" stroke-linecap="round" opacity=".55"/>
+  <path d="M-40 600 C160 520 330 680 520 600 S780 470 860 520" fill="none" stroke="url(#{{p}}rib)" stroke-width="10" stroke-linecap="round" opacity=".7"/>
+
+  <!-- logo inspired sculpted wings -->
+  <g filter="url(#{{p}}sh)" transform="translate(395 250)">
+    <rect x="-150" y="-10" width="300" height="70" rx="20" fill="#0B1D47"/>
+    <rect x="-150" y="-10" width="300" height="22" rx="11" fill="#FFFFFF" opacity=".10"/>
+    <path d="M-6 60 C-6 170 -40 230 -150 320 L-150 230 L-6 60 Z" fill="url(#{{p}}wing)"/>
+    <path d="M6 60 C6 170 40 230 150 320 L150 230 L6 60 Z" fill="url(#{{p}}wing)"/>
+    <path d="M-6 60 L-150 230 L-150 246 L-12 82 Z" fill="#FFFFFF" opacity=".28"/>
+    <path d="M6 60 L150 230 L150 246 L12 82 Z" fill="#FFFFFF" opacity=".18"/>
+  </g>
+
+  <!-- translucent layered panels -->
+  <g transform="rotate(-14 610 470)">
+    <rect x="520" y="380" width="230" height="160" rx="34" fill="url(#{{p}}glass)" stroke="#FFFFFF" stroke-opacity=".35"/>
+    <rect x="548" y="410" width="230" height="160" rx="34" fill="url(#{{p}}glass)" stroke="#FFFFFF" stroke-opacity=".25"/>
+  </g>
+
+  <!-- spheres -->
+  <ellipse cx="620" cy="300" rx="90" ry="16" fill="#050D22" opacity=".35" filter="url(#{{p}}blur)"/>
+  <circle cx="620" cy="200" r="92" fill="url(#{{p}}sph)" filter="url(#{{p}}sh)"/>
+  <circle cx="170" cy="250" r="54" fill="url(#{{p}}sph2)" filter="url(#{{p}}sh)"/>
+  <circle cx="250" cy="560" r="30" fill="url(#{{p}}sand)" filter="url(#{{p}}sh)"/>
+
+  <!-- ring -->
+  <g filter="url(#{{p}}sh)">
+    <circle cx="640" cy="690" r="62" fill="none" stroke="url(#{{p}}ring)" stroke-width="24"/>
+    <circle cx="640" cy="690" r="62" fill="none" stroke="#FFFFFF" stroke-opacity=".35" stroke-width="3" stroke-dasharray="60 330"/>
+  </g>
+
+  <!-- capsule -->
+  <g transform="rotate(32 140 430)" filter="url(#{{p}}sh)">
+    <rect x="90" y="410" width="120" height="44" rx="22" fill="url(#{{p}}ring)"/>
+    <rect x="100" y="414" width="96" height="12" rx="6" fill="#FFFFFF" opacity=".45"/>
+  </g>
+</svg>

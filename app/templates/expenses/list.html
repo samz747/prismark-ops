@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge, currency_fields %}
+{% block crumb %}{{ period_label }}{% endblock %}
+{% block top_actions %}<a class="btn ghost sm" href="?period={{ prev }}">&larr;</a><a class="btn ghost sm" href="?period={{ next }}">&rarr;</a>{% endblock %}
+{% block content %}
+<section class="grid g-side">
+  <div class="card">
+    <div class="card-head"><h2>Spending trend by category</h2><span class="badge sand">Forecast next month {{ total_forecast|tzs }}</span></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Category</th>{% for l in trend_labels %}<th class="num">{{ l }}</th>{% endfor %}<th class="num">Forecast</th></tr></thead>
+      <tbody>{% for t in trend %}<tr><td>{{ t.category }}{% if t.category in ACQ %} <span class="badge blue">Acquisition</span>{% endif %}</td>
+        {% for v in t['values'] %}<td class="num">{{ v|tzs(False) if v else '-' }}</td>{% endfor %}<td class="num"><strong>{{ t.forecast|tzs(False) }}</strong></td></tr>
+      {% else %}<tr><td colspan="8" class="empty">No expenses in the last six months.</td></tr>{% endfor %}</tbody>
+      <tfoot><tr><td>Total</td>{% for v in month_totals %}<td class="num">{{ v|tzs(False) }}</td>{% endfor %}<td class="num">{{ total_forecast|tzs(False) }}</td></tr></tfoot>
+    </table></div>
+    <p class="hint">Forecast = average of the last three months for each category.</p>
+  </div>
+  {% if can_submit %}
+  <div class="card">
+    <h3>Record an expense</h3>
+    <form method="post" action="/expenses" enctype="multipart/form-data">{{ csrf(ctx) }}
+      <div class="form-grid">
+        <label class="f"><span>Date</span><input type="date" name="on_date" value="{{ today.isoformat() }}"></label>
+        <label class="f"><span>Category</span><select name="category">{% for c in CATEGORIES %}<option>{{ c }}</option>{% endfor %}</select></label>
+        <label class="f full"><span>Description</span><input type="text" name="description" required maxlength="300"></label>
+        <label class="f"><span>Amount</span><input type="text" inputmode="decimal" name="amount" required></label>
+        <label class="f"><span>Paid to</span><input type="text" name="payee" maxlength="160"></label>
+        {{ currency_fields(usd_rate) }}
+        <label class="f"><span>Claimable VAT (TZS)</span><input type="text" inputmode="decimal" name="vat_amount" value="0"></label>
+        <label class="f full"><span>Customer (for acquisition cost)</span><select name="customer_id"><option value="">Not linked</option>{% for c in customers %}<option value="{{ c.id }}">{{ c.company_name }}</option>{% endfor %}</select></label>
+        <label class="f full"><span>Order</span><select name="order_id"><option value="">Not linked</option>{% for o in orders %}<option value="{{ o.id }}">{{ o.ref }} · {{ o.customer.company_name }}</option>{% endfor %}</select></label>
+        <label class="f full"><span>Receipt</span><input type="file" name="file"></label>
+      </div>
+      <div class="form-actions"><button class="btn" type="submit">Save expense</button></div>
+    </form>
+  </div>
+  {% endif %}
+</section>
+<form class="filters mt2" method="get"><input type="hidden" name="period" value="{{ period }}">
+  <label class="f"><span>Category</span><select name="category"><option value="">All</option>{% for c in CATEGORIES %}<option {{ 'selected' if q.get('category') == c }}>{{ c }}</option>{% endfor %}</select></label>
+  <label class="f"><span>Status</span><select name="status"><option value="">All</option>{% for s in ['pending','approved','rejected'] %}<option value="{{ s }}" {{ 'selected' if q.get('status') == s }}>{{ s|capitalize }}</option>{% endfor %}</select></label>
+  <button class="btn ghost" type="submit">Filter</button>
+</form>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Customer / order</th><th>By</th><th>Status</th><th>Receipt</th><th class="num">TZS</th></tr></thead>
+  <tbody>{% for x in rows %}
+    <tr><td class="nowrap">{{ x.on_date|dfmt }}</td><td>{{ x.category }}</td><td><a class="row-link" href="/expenses/{{ x.id }}">{{ x.description }}</a>{% if x.currency != 'TZS' %}<div class="small muted">{{ x.amount|money(x.currency) }}</div>{% endif %}</td>
+      <td>{{ x.customer.company_name if x.customer else '' }}{% if x.order %}<div class="small muted">{{ x.order.ref }}</div>{% endif %}</td>
+      <td>{{ x.submitted_by.full_name }}</td><td>{{ status_badge(x.status) }}</td>
+      <td>{% if docs.get(x.id) %}<span class="badge proof-ok">{{ icon('clip') }} Yes</span>{% else %}<span class="badge proof-missing">{{ icon('alert') }} Missing</span>{% endif %}</td>
+      <td class="num">{{ x.amount_tzs|tzs(False) }}</td></tr>
+  {% else %}<tr><td colspan="8" class="empty">No expenses in {{ period_label }}.</td></tr>{% endfor %}</tbody>
+  <tfoot><tr><td colspan="7">Total (excluding rejected)</td><td class="num">{{ total|tzs(False) }}</td></tr></tfoot>
+</table></div></div>
+{% endblock %}

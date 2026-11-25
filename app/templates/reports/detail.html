@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge %}
+{% block crumb %}<a href="/reports">Reports</a> · {{ r.on_date|dfmt }}{% endblock %}
+{% block content %}
+<section class="grid g-side">
+  <div class="card">
+    <div class="card-head"><h2>{{ r.user.full_name }} · {{ r.on_date|dfmt }}</h2>{{ status_badge(r.status) }}</div>
+    <h3>Achieved</h3><p>{{ r.achievements }}</p>
+    {% if r.challenges %}<h3>Challenges</h3><p>{{ r.challenges }}</p>{% endif %}
+    {% if r.plan_next %}<h3>Plan for next day</h3><p>{{ r.plan_next }}</p>{% endif %}
+    <p class="small muted">Submitted {{ r.submitted_at|eat }}</p>
+    {% if r.md_comment %}<div class="attention">{{ ico('shield','sand','sm') }}<div><strong>MD comment</strong><br>{{ r.md_comment }}</div></div>{% endif %}
+    {% if ctx.is_admin %}
+    <form method="post" action="/reports/{{ r.id }}/review" class="mt">{{ csrf(ctx) }}
+      <label class="f mb"><span>Comment</span><textarea name="md_comment">{{ r.md_comment or '' }}</textarea></label>
+      <button class="btn" type="submit">Mark reviewed</button></form>
+    {% endif %}
+  </div>
+  <div class="card"><h3>System record for that day</h3>{% include "reports/_record.html" %}</div>
+</section>
+{% endblock %}

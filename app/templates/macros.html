@@ -1,0 +1,123 @@
+{% macro icon(name) -%}
+<svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+{%- if name == 'grid' -%}<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>
+{%- elif name == 'building' -%}<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4M8 6h.01M16 6h.01M12 6h.01M12 10h.01M12 14h.01M16 10h.01M16 14h.01M8 10h.01M8 14h.01"/>
+{%- elif name == 'package' -%}<path d="M16.5 9.4 7.5 4.2M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/>
+{%- elif name == 'invoice' -%}<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/>
+{%- elif name == 'wallet' -%}<path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/>
+{%- elif name == 'receipt' -%}<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8M12 17.5v-11"/>
+{%- elif name == 'target' -%}<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>
+{%- elif name == 'clipboard' -%}<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2M12 11h4M12 16h4M8 11h.01M8 16h.01"/>
+{%- elif name == 'check' -%}<path d="M20 6 9 17l-5-5"/>
+{%- elif name == 'tasks' -%}<path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+{%- elif name == 'megaphone' -%}<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>
+{%- elif name == 'idcard' -%}<rect x="2" y="5" width="20" height="14" rx="2"/><circle cx="8" cy="12" r="2.5"/><path d="M14 10h4M14 14h4M5 17c.5-1.5 1.7-2.3 3-2.3s2.5.8 3 2.3"/>
+{%- elif name == 'landmark' -%}<path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M12 2l8 5H4z"/>
+{%- elif name == 'shield' -%}<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/>
+{%- elif name == 'activity' -%}<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+{%- elif name == 'settings' -%}<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>
+{%- elif name == 'alert' -%}<path d="m21.7 18-8-14a2 2 0 0 0-3.4 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3z"/><path d="M12 9v4M12 17h.01"/>
+{%- elif name == 'clip' -%}<path d="m21.4 11-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/>
+{%- elif name == 'file' -%}<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/>
+{%- elif name == 'plus' -%}<path d="M12 5v14M5 12h14"/>
+{%- elif name == 'arrow' -%}<path d="M5 12h14M12 5l7 7-7 7"/>
+{%- elif name == 'logout' -%}<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
+{%- elif name == 'lock' -%}<rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+{%- elif name == 'trend' -%}<path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/>
+{%- elif name == 'clock' -%}<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+{%- elif name == 'calendar' -%}<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+{%- elif name == 'truck' -%}<path d="M10 17h4V5H2v12h3M20 17h2v-3.3a1 1 0 0 0-.2-.6l-3.5-4.5a1 1 0 0 0-.8-.4H14v8h1"/><circle cx="7.5" cy="17.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>
+{%- elif name == 'globe' -%}<circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"/>
+{%- elif name == 'phone' -%}<path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/>
+{%- elif name == 'mail' -%}<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>
+{%- elif name == 'x' -%}<path d="M18 6 6 18M6 6l12 12"/>
+{%- elif name == 'coins' -%}<circle cx="8" cy="8" r="6"/><path d="M18.1 10.4A6 6 0 1 1 10.3 18M7 6h1v4M16.7 13.9l.7.7-2.8 2.8"/>
+{%- elif name == 'pie' -%}<path d="M21.2 15.9A10 10 0 1 1 8 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>
+{%- elif name == 'users' -%}<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8"/>
+{%- elif name == 'user' -%}<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>
+{%- elif name == 'flag' -%}<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7"/>
+{%- elif name == 'menu' -%}<path d="M4 6h16M4 12h16M4 18h16"/>
+{%- elif name == 'eye' -%}<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>
+{%- elif name == 'download' -%}<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+{%- elif name == 'star' -%}<path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>
+{%- else -%}<circle cx="12" cy="12" r="9"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}
+
+{% macro ico(name, tone='', size='') -%}<span class="ico3d {{ tone }} {{ size }}">{{ icon(name) }}</span>{%- endmacro %}
+
+{% macro csrf(ctx) %}<input type="hidden" name="csrf_token" value="{{ ctx.csrf }}">{% endmacro %}
+
+{% macro bar(pct, mark=None, tone='blue') -%}
+{%- set p = [[pct|float, 0]|max, 100]|min -%}
+<svg class="bar" viewBox="0 0 100 12" preserveAspectRatio="none" aria-hidden="true">
+  <rect x="0" y="2" width="100" height="8" rx="4" fill="#ECE7DD"/>
+  <rect x="0" y="2" width="{{ p }}" height="8" rx="4" fill="{{ {'blue':'#2C59A8','good':'#0E8466','ok':'#087F83','warn':'#B7781F','bad':'#BE3A35','muted':'#9AA3B5','teal':'#087F83'}[tone] or '#2C59A8' }}"/>
+  {% if mark is not none %}<rect x="{{ [[mark|float,0]|max, 99.4]|min }}" y="0" width=".7" height="12" fill="#091739"/>{% endif %}
+</svg>
+{%- endmacro %}
+
+{% macro proof(docs, label='Proof') -%}
+{%- if docs -%}<span class="badge proof-ok">{{ icon('clip') }} {{ docs|length }} file{{ 's' if docs|length > 1 }}</span>
+{%- else -%}<span class="badge proof-missing">{{ icon('alert') }} Proof missing</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro doc_list(docs, ctx, back) %}
+{% if docs %}
+<ul class="doc-list">
+  {% for d in docs %}
+  <li>{{ icon('file') }}
+    <span class="grow"><a href="/files/{{ d.id }}" target="_blank" rel="noopener">{{ d.original_name }}</a>
+      <span class="muted small"> · {{ DOC_TYPES.get(d.doc_type, d.doc_type) }} · {{ d.uploaded_by.full_name }} · {{ d.uploaded_at|eat }}</span></span>
+    {% if ctx.is_admin %}
+    <form class="inline" method="post" action="/files/{{ d.id }}/delete" data-confirm="Delete this document permanently?">
+      {{ csrf(ctx) }}<input type="hidden" name="back" value="{{ back }}"><button class="link small" type="submit">Remove</button>
+    </form>{% endif %}
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endmacro %}
+
+{% macro uploader(ctx, entity, entity_id, back, types, default=None) %}
+<form method="post" action="/files/upload" enctype="multipart/form-data" class="stack mt">
+  {{ csrf(ctx) }}
+  <input type="hidden" name="entity" value="{{ entity }}"><input type="hidden" name="entity_id" value="{{ entity_id }}">
+  <input type="hidden" name="back" value="{{ back }}">
+  <label class="f"><span>Document type</span>
+    <select name="doc_type">{% for t in types %}<option value="{{ t }}" {{ 'selected' if t == default }}>{{ DOC_TYPES[t] }}</option>{% endfor %}</select>
+  </label>
+  <label class="f"><span>File (PDF, image, DOCX, XLSX)</span><input type="file" name="file" required></label>
+  <div class="actions"><button class="btn sm teal" type="submit">{{ icon('clip') }} Attach document</button></div>
+</form>
+{% endmacro %}
+
+{% macro currency_fields(usd_rate, currency='TZS', rate=None, prefix='') %}
+<label class="f"><span>Currency</span>
+  <select name="{{prefix}}currency" class="js-currency" data-rate-target="{{prefix}}rate-wrap">
+    <option value="TZS" {{ 'selected' if currency == 'TZS' }}>TZS</option>
+    <option value="USD" {{ 'selected' if currency == 'USD' }}>USD</option>
+  </select>
+</label>
+<label class="f {{ 'hidden' if currency == 'TZS' }}" id="{{prefix}}rate-wrap"><span>Exchange rate (TZS per USD)</span>
+  <input type="text" inputmode="decimal" name="{{prefix}}exchange_rate" value="{{ rate if rate and currency == 'USD' else usd_rate }}">
+</label>
+{% endmacro %}
+
+{% macro stage_badge(stage, label) -%}
+{%- set tone = {'enquiry':'muted','quotation':'sand','lpo':'blue','sourcing':'teal','shipping':'teal','delivery':'blue','invoiced':'navy','payment_pending':'warn','paid':'good'}[stage] -%}
+<span class="badge {{ tone }}">{{ label }}</span>
+{%- endmacro %}
+
+{% macro status_badge(s) -%}
+{%- set tone = {'pending':'warn','confirmed':'good','approved':'good','rejected':'bad','submitted':'blue','reviewed':'good','open':'muted','in_progress':'blue','done':'good','draft':'sand','active':'good','prospect':'blue','inactive':'muted'}[s] -%}
+<span class="badge {{ tone or 'muted' }}">{{ s.replace('_',' ')|capitalize }}</span>
+{%- endmacro %}
+
+{% macro period_nav(period, base, label) %}
+<div class="actions">
+  <a class="btn ghost sm" href="{{ base }}period={{ prev }}">&larr;</a>
+  <strong>{{ label }}</strong>
+</div>
+{% endmacro %}

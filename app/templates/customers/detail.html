@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, proof, doc_list, uploader, stage_badge, status_badge %}
+{% block crumb %}<a href="/customers">Customers</a> · {{ c.code }}{% endblock %}
+{% block top_actions %}{% if can_write %}<a class="btn ghost" href="/customers/{{ c.id }}/edit">Edit</a>
+{% if ctx.can('orders') and ctx.level('orders') != 'view' %}<a class="btn" href="/orders/new?customer={{ c.id }}">{{ icon('plus') }} New order</a>{% endif %}{% endif %}{% endblock %}
+{% block content %}
+<section class="profile-head">
+  {% with p='ph', cls='art' %}{% include "_art.html" %}{% endwith %}
+  <div class="row">
+    <span class="tier {{ v.tier }}">{{ v.tier }}</span>
+    <div>
+      <h1>{{ c.company_name }}</h1>
+      <div class="meta"><span>{{ c.code }}</span>{% if c.sector %}<span>{{ c.sector }}</span>{% endif %}<span>{{ c.city or '' }}{{ ', ' ~ c.country if c.country }}</span>
+        <span>Rep: {{ c.assigned_sales.full_name if c.assigned_sales else 'Unassigned' }}</span>{{ status_badge(c.status) }}</div>
+    </div>
+  </div>
+  <div class="stats">
+    <div class="glass"><div class="k">Revenue (excl. VAT)</div><div class="v">{{ v.revenue|tzs }}</div><div class="s">{{ v.orders }} order{{ 's' if v.orders != 1 }}</div></div>
+    <div class="glass"><div class="k">Gross profit</div><div class="v">{{ v.gross_profit|tzs }}</div><div class="s">{{ ('%.1f%% margin'|format(v.margin)) if v.margin is not none else 'No invoices yet' }}</div></div>
+    <div class="glass"><div class="k">Outstanding</div><div class="v">{{ v.outstanding|tzs }}</div><div class="s">{{ v.overdue|tzs }} overdue</div></div>
+    <div class="glass"><div class="k">Net value to Prismark</div><div class="v">{{ v.net_value|tzs }}</div><div class="s">after {{ (v.cac + v.cost_to_serve)|tzs }} linked costs</div></div>
+  </div>
+</section>
+
+{% if c.attention_note %}
+<div class="attention">{{ ico('alert','sand','sm') }}<div><strong>Attention when dealing with this customer</strong><br>{{ c.attention_note }}</div></div>
+{% endif %}
+{% for n in c.notes if n.pinned %}
+<div class="attention">{{ ico('flag','sand','sm') }}<div><strong>Pinned note by {{ n.author.full_name }}</strong><br>{{ n.body }}</div></div>
+{% endfor %}
+
+<nav class="tabs">
+  {% for key, label in [('overview','Overview'),('activities','Activities'),('orders','Orders'),('invoices','Invoices'),('notes','Notes'),('costs','Costs & "Incentive"'),('documents','Documents'),('history','Assignment history')] %}
+  <a href="?tab={{ key }}" class="{{ 'on' if tab == key }}">{{ label }}</a>
+  {% endfor %}
+</nav>
+
+{% if tab == 'overview' %}
+<section class="grid g-side">
+  <div>
+    <div class="card">
+      <h2>Company details</h2>
+      <dl class="dl">
+        <dt>TIN</dt><dd>{{ c.tin or '-' }}</dd><dt>VRN</dt><dd>{{ c.vrn or '-' }}</dd>
+        <dt>Phone</dt><dd>{{ c.phone or '-' }}</dd><dt>Email</dt><dd>{{ c.email or '-' }}</dd>
+        <dt>Website</dt><dd>{{ c.website or '-' }}</dd><dt>Address</dt><dd>{{ c.address or '-' }}</dd>
+        <dt>Source</dt><dd>{{ c.source or '-' }}</dd><dt>Payment terms</dt><dd>{{ c.payment_terms_days }} days</dd>
+        <dt>Created</dt><dd>{{ c.created_at|eat }}</dd>
+      </dl>
+    </div>
+    <div class="card mt">
+      <div class="card-head"><h2>Contact people</h2></div>
+      <ul class="list">
+        {% for p in c.contacts %}
+        <li>{{ ico('user','pearl','sm') }}<div class="grow"><strong>{{ p.name }}</strong>{% if p.is_primary %} <span class="badge blue">Main</span>{% endif %}
+          <div class="small muted">{{ p.position or '' }}{% if p.phone %} · {{ p.phone }}{% endif %}{% if p.email %} · {{ p.email }}{% endif %}</div></div>
+          {% if can_write %}<form method="post" action="/customers/{{ c.id }}/contacts/{{ p.id }}/delete" data-confirm="Remove this contact?">{{ csrf(ctx) }}<button class="link small">Remove</button></form>{% endif %}
+        </li>
+        {% else %}<li class="muted">No contacts yet.</li>{% endfor %}
+      </ul>
+      {% if can_write %}
+      <details class="box mt"><summary>Add contact person</summary>
+        <form method="post" action="/customers/{{ c.id }}/contacts" class="form-grid">{{ csrf(ctx) }}
+          <label class="f"><span>Name</span><input type="text" name="name" required maxlength="120"></label>
+          <label class="f"><span>Position</span><input type="text" name="position" maxlength="80"></label>
+          <label class="f"><span>Phone</span><input type="tel" name="phone" maxlength="40"></label>
+          <label class="f"><span>Email</span><input type="email" name="email" maxlength="160"></label>
+          <label class="check full"><input type="checkbox" name="is_primary" value="1"> Main contact</label>
+          <div class="full actions"><button class="btn sm" type="submit">Add contact</button></div>
+        </form></details>
+      {% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="card">
+      <h2>Customer worth</h2>
+      <dl class="dl">
+        <dt>Invoiced (incl. VAT)</dt><dd>{{ v.invoiced_total|tzs }}</dd>
+        <dt>Paid & confirmed</dt><dd>{{ v.paid|tzs }}</dd>
+        <dt>Awaiting MD confirmation</dt><dd>{{ v.pending|tzs }}</dd>
+        <dt>Outstanding</dt><dd>{{ v.outstanding|tzs }}</dd>
+        <dt>Open pipeline</dt><dd>{{ v.pipeline|tzs }}</dd>
+        <dt>Acquisition cost</dt><dd>{{ v.cac|tzs }}</dd>
+        <dt>Cost to serve</dt><dd>{{ v.cost_to_serve|tzs }}</dd>
+        <dt>Average days to pay</dt><dd>{{ ('%.0f days'|format(v.avg_days_to_pay)) if v.avg_days_to_pay is not none else '-' }}</dd>
+        <dt>Last contact</dt><dd>{{ v.last_activity|dfmt if v.last_activity else 'Never' }}</dd>
+      </dl>
+    </div>
+    {% if ctx.is_admin %}
+    <div class="card mt">
+      <h3>Assign sales representative</h3>
+      <form method="post" action="/customers/{{ c.id }}/assign">{{ csrf(ctx) }}
+        <label class="f mb"><span>Representative</span><select name="user_id"><option value="">Unassigned</option>
+          {% for r in reps %}<option value="{{ r.id }}" {{ 'selected' if r.id == c.assigned_sales_id }}>{{ r.full_name }}</option>{% endfor %}</select></label>
+        <label class="f mb"><span>Reason</span><input type="text" name="reason" required maxlength="300"></label>
+        <label class="check mb"><input type="checkbox" name="move_open_orders" value="1" checked> Move open orders to the new representative</label>
+        <button class="btn sm navy" type="submit">Reassign</button>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{% elif tab == 'activities' %}
+<section class="grid g-side">
+  <div class="card">
+    <h2>Activity timeline</h2>
+    <div class="timeline mt">
+      {% for a in activities %}
+      <div class="t {{ loop.cycle('', 'teal', 'sand') }}">
+        <strong>{{ a.kind }}</strong> <span class="muted small">· {{ a.on_date|dfmt }} · {{ a.user.full_name }}</span>
+        <div>{{ a.summary }}</div>
+        {% if a.outcome %}<div class="small muted">Outcome: {{ a.outcome }}</div>{% endif %}
+        {% if a.next_action %}<div class="small"><span class="badge warn">Next: {{ a.next_action }}{% if a.next_action_date %} by {{ a.next_action_date|dfmt }}{% endif %}</span></div>{% endif %}
+      </div>
+      {% else %}<p class="muted">No activities logged yet.</p>{% endfor %}
+    </div>
+  </div>
+  {% if can_write %}
+  <div class="card">
+    <h3>Log activity</h3>
+    <form method="post" action="/customers/{{ c.id }}/activities">{{ csrf(ctx) }}
+      <div class="form-grid">
+        <label class="f"><span>Type</span><select name="kind">{% for k in ACTIVITY_KINDS %}<option>{{ k }}</option>{% endfor %}</select></label>
+        <label class="f"><span>Date</span><input type="date" name="on_date" value="{{ today.isoformat() }}"></label>
+        <label class="f full"><span>What happened</span><textarea name="summary" required></textarea></label>
+        <label class="f full"><span>Outcome</span><input type="text" name="outcome" maxlength="300"></label>
+        <label class="f"><span>Next action</span><input type="text" name="next_action" maxlength="300"></label>
+        <label class="f"><span>Next action date</span><input type="date" name="next_action_date"></label>
+      </div>
+      <div class="form-actions"><button class="btn" type="submit">Save activity</button></div>
+    </form>
+  </div>
+  {% endif %}
+</section>
+
+{% elif tab == 'orders' %}
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Order</th><th>Sourcing</th><th>Stage</th><th>Sales</th><th class="num">Value (TZS)</th><th>LPO</th></tr></thead>
+  <tbody>{% for o in orders %}
+  <tr><td><a class="row-link" href="/orders/{{ o.id }}">{{ o.ref }}</a><div class="small muted">{{ o.title }}</div></td>
+    <td>{{ o.sourcing_type|capitalize }}<div class="small muted">{{ o.origin or '' }}</div></td>
+    <td>{{ stage_badge(o.stage, STAGE_LABEL[o.stage]) }}{% if o.is_cancelled %} <span class="badge bad">Cancelled</span>{% endif %}</td>
+    <td>{{ o.sales.full_name if o.sales else '-' }}</td><td class="num">{{ order_revenue(o)|tzs(False) }}</td><td>{{ o.lpo_number or '-' }}</td></tr>
+  {% else %}<tr><td colspan="6" class="empty">No orders yet.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+
+{% elif tab == 'invoices' %}
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th class="num">Total (TZS)</th><th class="num">Balance (TZS)</th></tr></thead>
+  <tbody>{% for i in invoices %}{% set bal = settled_balance(i) %}
+  <tr><td><a class="row-link" href="/finance/invoices/{{ i.id }}">{{ i.number }}</a></td><td>{{ i.issue_date|dfmt }}</td>
+    <td>{{ i.due_date|dfmt }}</td><td class="num">{{ i.total_tzs|tzs(False) }}</td>
+    <td class="num">{% if bal > 1 %}<span class="badge {{ 'bad' if i.due_date < today else 'warn' }}">{{ bal|tzs(False) }}</span>{% else %}<span class="badge good">Paid</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="5" class="empty">No invoices yet.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+
+{% elif tab == 'notes' %}
+<section class="grid g-side">
+  <div class="card">
+    <h2>Notes</h2>
+    <ul class="list">
+      {% for n in c.notes %}
+      <li>{{ ico('flag' if n.pinned else 'clipboard', 'sand' if n.pinned else 'pearl', 'sm') }}
+        <div class="grow"><div>{{ n.body }}</div><div class="small muted">{{ n.author.full_name }} · {{ n.created_at|eat }}{% if n.pinned %} · pinned{% endif %}</div></div>
+        {% if ctx.is_admin or n.author_id == ctx.user.id %}<form method="post" action="/customers/{{ c.id }}/notes/{{ n.id }}/delete" data-confirm="Delete this note?">{{ csrf(ctx) }}<button class="link small">Delete</button></form>{% endif %}
+      </li>
+      {% else %}<li class="muted">No notes yet.</li>{% endfor %}
+    </ul>
+  </div>
+  {% if can_write %}
+  <div class="card"><h3>Add note</h3>
+    <form method="post" action="/customers/{{ c.id }}/notes">{{ csrf(ctx) }}
+      <label class="f"><span>Note</span><textarea name="body" required></textarea></label>
+      <label class="check mt"><input type="checkbox" name="pinned" value="1"> Pin as an attention alert</label>
+      <div class="form-actions"><button class="btn" type="submit">Save note</button></div>
+    </form></div>
+  {% endif %}
+</section>
+
+{% elif tab == 'costs' %}
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>By</th><th>Status</th><th class="num">Amount (TZS)</th></tr></thead>
+  <tbody>{% for e in expenses %}
+  <tr><td class="nowrap">{{ e.on_date|dfmt }}</td><td>{{ e.category }}</td><td><a href="/expenses/{{ e.id }}">{{ e.description }}</a></td>
+    <td>{{ e.submitted_by.full_name }}</td><td>{{ status_badge(e.status) }}</td><td class="num">{{ e.amount_tzs|tzs(False) }}</td></tr>
+  {% else %}<tr><td colspan="6" class="empty">No costs linked to this customer. Link an expense to this customer when you record it.</td></tr>{% endfor %}</tbody>
+  {% if expenses %}<tfoot><tr><td colspan="5">Acquisition {{ v.cac|tzs }} · cost to serve {{ v.cost_to_serve|tzs }}</td><td class="num">{{ (v.cac + v.cost_to_serve)|tzs(False) }}</td></tr></tfoot>{% endif %}
+</table></div></div>
+
+{% elif tab == 'documents' %}
+<div class="card">
+  <h2>Customer documents</h2>
+  <p class="muted">Registration certificates, contracts and framework agreements. Order and invoice documents are kept on each order.</p>
+  {{ doc_list(docs, ctx, '/customers/%d?tab=documents'|format(c.id)) }}
+  {% if can_write %}{{ uploader(ctx, 'customer', c.id, '/customers/%d?tab=documents'|format(c.id), ['registration','contract','other'], 'contract') }}{% endif %}
+</div>
+
+{% elif tab == 'history' %}
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>When</th><th>From</th><th>To</th><th>Changed by</th><th>Reason</th></tr></thead>
+  <tbody>{% for h in history %}
+  <tr><td class="nowrap">{{ h.at|eat }}</td><td>{{ h.from_user.full_name if h.from_user else '-' }}</td><td>{{ h.to_user.full_name if h.to_user else 'Unassigned' }}</td>
+    <td>{{ h.changed_by.full_name }}</td><td>{{ h.reason or '' }}</td></tr>
+  {% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

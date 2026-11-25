@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+{% if not profile %}<div class="card muted">Your login is not linked to a staff profile yet. Ask HR to link it.</div>{% else %}
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Month</th><th class="num">Gross</th><th class="num">Deductions</th><th class="num">Net</th><th></th></tr></thead>
+  <tbody>{% for l in lines %}<tr><td>{{ l.run.period }}</td><td class="num">{{ l.gross|tzs(False) }}</td><td class="num">{{ (l.nssf_employee + l.paye + l.other_deductions)|tzs(False) }}</td><td class="num"><strong>{{ l.net|tzs(False) }}</strong></td><td><a class="btn sm ghost" href="/hr/payslips/{{ l.id }}">Open</a></td></tr>
+  {% else %}<tr><td colspan="5" class="empty">No approved payslips yet.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endif %}
+{% endblock %}

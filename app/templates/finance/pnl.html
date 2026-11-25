@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico %}
+{% block top_actions %}<a class="btn ghost sm" href="?period={{ prev }}">&larr; Earlier</a>{% if show_next %}<a class="btn ghost sm" href="?period={{ next }}">Later &rarr;</a>{% endif %}{% endblock %}
+{% block content %}
+<p class="muted">Built only from recorded figures: invoices (excl. VAT), order costs, approved expenses and approved payroll. Amounts in TZS.</p>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th></th>{% for m in months %}<th class="num">{{ m.label }}</th>{% endfor %}<th class="num">Total</th></tr></thead>
+  <tbody>
+    {% for key, label in [('revenue','Revenue (invoiced)'),('cogs','Cost of goods sourced'),('gross','Gross profit'),('opex','Operating expenses'),('payroll','Payroll cost'),('net','Net profit before tax'),('collected','Cash collected')] %}
+    <tr {% if key in ('gross','net') %}class="strong"{% endif %}><td><strong>{{ label }}</strong></td>
+      {% for m in months %}<td class="num">{% if m[key] < 0 %}<span class="badge bad">{{ m[key]|tzs(False) }}</span>{% else %}{{ m[key]|tzs(False) }}{% endif %}</td>{% endfor %}
+      <td class="num"><strong>{{ totals[key]|tzs(False) }}</strong></td></tr>
+    {% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

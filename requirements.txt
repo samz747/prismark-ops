@@ -1,0 +1,9 @@
+fastapi==0.165.0
+starlette==1.7.0
+uvicorn[standard]==0.54.0
+SQLAlchemy==2.1.9
+Jinja2==3.1.6
+argon2-cffi==25.1.0
+python-multipart==0.0.32
+python-dotenv==1.2.3
+psycopg2-binary==2.9.13

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge %}
+{% block content %}
+<section class="grid g-side">
+  <div>
+    <div class="card">
+      <div class="card-head">{{ ico('calendar','teal','sm') }}<h2>Today across the team · {{ today|dfmt }}</h2></div>
+      {% for u, items in board %}
+        <h3 class="mt">{{ u.full_name }}</h3>
+        <ul class="list">{% for t, a in items %}
+          <li><span class="badge {{ 'teal' if t.kind == 'schedule' else 'navy' }}">{{ (t.start_time ~ ' to ' ~ t.end_time) if t.start_time and t.end_time else ('Assigned' if t.kind == 'assigned' else 'Planned') }}</span>
+            <div class="grow">{{ t.title }}{% if t.customer %} <span class="small muted">· {{ t.customer.company_name }}</span>{% endif %}
+              {% if t.kind == 'assigned' %}<div class="small muted">Assigned by {{ t.created_by.full_name }}{% if t.due_date %} · due {{ t.due_date|dfmt }}{% endif %}</div>{% endif %}</div>
+            {{ status_badge(a.status) }}</li>{% endfor %}</ul>
+      {% else %}<p class="muted">No activities planned or assigned for today yet.</p>{% endfor %}
+    </div>
+  </div>
+  <div>
+    {% if can_post %}
+    <div class="card mb"><h3>Post a notice</h3>
+      <form method="post" action="/notices">{{ csrf(ctx) }}
+        <label class="f mb"><span>Title</span><input type="text" name="title" required maxlength="200"></label>
+        <label class="f mb"><span>Message</span><textarea name="body" required></textarea></label>
+        <div class="form-grid"><label class="f"><span>Show until</span><input type="date" name="expires_on"></label>
+          <label class="check"><input type="checkbox" name="pinned" value="1"> Pin to top</label></div>
+        <div class="form-actions"><button class="btn sm" type="submit">Post</button></div></form></div>
+    {% endif %}
+    {% for n in notices %}
+    <div class="notice {{ 'pinned' if n.pinned }}">
+      <div class="card-head">{{ ico('megaphone','sand' if n.pinned else 'pearl','sm') }}<h3>{{ n.title }}</h3>
+        {% if ctx.is_admin or n.posted_by_id == ctx.user.id %}<form method="post" action="/notices/{{ n.id }}/delete">{{ csrf(ctx) }}<button class="link small">Remove</button></form>{% endif %}</div>
+      <p>{{ n.body }}</p><div class="small muted">{{ n.posted_by.full_name }} · {{ n.posted_at|eat }}{% if n.expires_on %} · until {{ n.expires_on|dfmt }}{% endif %}</div>
+    </div>
+    {% else %}<div class="card muted">No notices.</div>{% endfor %}
+  </div>
+</section>
+{% endblock %}

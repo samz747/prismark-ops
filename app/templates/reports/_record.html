@@ -1,0 +1,11 @@
+<ul class="list">
+  <li>{{ ico('phone','teal','sm') }}<div class="grow"><strong>{{ record.activities|length }} customer activit{{ 'y' if record.activities|length == 1 else 'ies' }}</strong>
+    {% for a in record.activities %}<div class="small muted">{{ a.kind }} · {{ a.customer.company_name }}: {{ a.summary[:80] }}</div>{% endfor %}</div></li>
+  <li>{{ ico('tasks','navy','sm') }}<div class="grow"><strong>{{ record.tasks_done|length }} task{{ 's' if record.tasks_done|length != 1 }} completed</strong>
+    {% for t in record.tasks_done %}<div class="small muted">{{ t.task.title }}</div>{% endfor %}</div></li>
+  <li>{{ ico('package','sand','sm') }}<div class="grow"><strong>{{ record.stages|length }} order stage{{ 's' if record.stages|length != 1 }} moved</strong>
+    {% for s in record.stages %}<div class="small muted">{{ s.order.ref }}: {{ s.from_stage }} &rarr; {{ s.to_stage }}</div>{% endfor %}</div></li>
+  <li>{{ ico('wallet','turq','sm') }}<div class="grow"><strong>{{ record.payments|length }} payment{{ 's' if record.payments|length != 1 }} recorded</strong>
+    {% for p in record.payments %}<div class="small muted">{{ p.invoice.number }}: {{ p.amount|money(p.currency) }}</div>{% endfor %}</div></li>
+  <li>{{ ico('activity','pearl','sm') }}<div class="grow"><strong>{{ record.changes }} record changes in total</strong></div></li>
+</ul>

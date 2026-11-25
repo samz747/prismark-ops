@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card narrow">
+  <div class="card-head"><img src="/static/img/wordmark.png" alt="Prismark" class="payslip-logo"><h2 class="right">Payslip · {{ period_label }}</h2></div>
+  <dl class="dl"><dt>Employee</dt><dd>{{ l.staff.full_name }}</dd><dt>Position</dt><dd>{{ l.staff.position or '-' }}</dd><dt>TIN</dt><dd>{{ l.staff.tin or '-' }}</dd><dt>NSSF no.</dt><dd>{{ l.staff.nssf_number or '-' }}</dd></dl>
+  <div class="sep"></div>
+  <table><tbody>
+    <tr><td>Basic salary</td><td class="num">{{ l.basic|tzs }}</td></tr>
+    {% for a in allows %}<tr><td>{{ a.kind }} allowance{% if not a.taxable %} (non taxable){% endif %}</td><td class="num">{{ a.amount|tzs }}</td></tr>{% endfor %}
+    <tr><td><strong>Gross pay</strong></td><td class="num"><strong>{{ l.gross|tzs }}</strong></td></tr>
+    <tr><td>NSSF employee contribution</td><td class="num">-{{ l.nssf_employee|tzs(False) }}</td></tr>
+    <tr><td>PAYE (on taxable {{ l.taxable_income|tzs(False) }})</td><td class="num">-{{ l.paye|tzs(False) }}</td></tr>
+    {% if l.other_deductions %}<tr><td>Other deductions</td><td class="num">-{{ l.other_deductions|tzs(False) }}</td></tr>{% endif %}
+  </tbody><tfoot><tr><td>Net pay</td><td class="num">{{ l.net|tzs }}</td></tr></tfoot></table>
+  <p class="hint mt">Employer contributions: NSSF {{ l.nssf_employer|tzs }} · SDL {{ l.sdl|tzs }} · WCF {{ l.wcf|tzs }}</p>
+</div>
+{% endblock %}

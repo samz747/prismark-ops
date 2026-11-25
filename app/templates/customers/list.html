@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, status_badge %}
+{% block top_actions %}{% if can_create %}<a class="btn" href="/customers/new">{{ icon('plus') }} New customer</a>{% endif %}{% endblock %}
+{% block content %}
+<section class="grid g3 mb">
+  <div class="card kpi">{{ ico('trend','navy') }}<div><div class="k">Revenue (excl. VAT), all time</div><div class="v">{{ totals.revenue|tzs }}</div></div></div>
+  <div class="card kpi">{{ ico('coins','teal') }}<div><div class="k">Gross profit</div><div class="v">{{ totals.gross_profit|tzs }}</div></div></div>
+  <div class="card kpi">{{ ico('clock','sand') }}<div><div class="k">Outstanding balances</div><div class="v">{{ totals.outstanding|tzs }}</div></div></div>
+</section>
+<form class="filters" method="get">
+  <label class="f"><span>Search</span><input type="search" name="q" value="{{ q.get('q','') }}" placeholder="Name, code or TIN"></label>
+  <label class="f"><span>Status</span><select name="status"><option value="">All</option>{% for s in STATUSES %}<option value="{{ s }}" {{ 'selected' if q.get('status') == s }}>{{ s|capitalize }}</option>{% endfor %}</select></label>
+  {% if ctx.level('customers') != 'own' %}
+  <label class="f"><span>Sales rep</span><select name="rep"><option value="">All</option>{% for r in reps %}<option value="{{ r.id }}" {{ 'selected' if q.get('rep') == r.id|string }}>{{ r.full_name }}</option>{% endfor %}</select></label>
+  {% endif %}
+  <label class="f"><span>Sort</span><select name="sort"><option value="">Name</option><option value="value" {{ 'selected' if q.get('sort') == 'value' }}>Highest value</option></select></label>
+  <button class="btn ghost" type="submit">Filter</button>
+</form>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Tier</th><th>Customer</th><th>Sales rep</th><th class="num">Revenue</th><th class="num">Gross profit</th><th class="num">Outstanding</th><th>Last contact</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for c, v in rows %}
+    <tr>
+      <td><span class="tier {{ v.tier }}">{{ v.tier }}</span></td>
+      <td><a class="row-link" href="/customers/{{ c.id }}">{{ c.company_name }}</a><div class="small muted">{{ c.code }}{% if c.sector %} · {{ c.sector }}{% endif %}{% if c.attention_note %} · <span class="badge warn">Attention</span>{% endif %}</div></td>
+      <td>{{ c.assigned_sales.full_name if c.assigned_sales else 'Unassigned' }}</td>
+      <td class="num">{{ v.revenue|tzs(False) }}</td>
+      <td class="num">{{ v.gross_profit|tzs(False) }}</td>
+      <td class="num">{% if v.overdue > 0 %}<span class="badge bad">{{ v.outstanding|tzs(False) }}</span>{% else %}{{ v.outstanding|tzs(False) }}{% endif %}</td>
+      <td class="nowrap">{{ v.last_activity|dfmt if v.last_activity else '-' }}</td>
+      <td>{{ status_badge(c.status) }}</td>
+    </tr>
+  {% else %}<tr><td colspan="8" class="empty">No customers found.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

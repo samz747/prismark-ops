@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge %}
+{% block top_actions %}<a class="btn ghost" href="/hr/allowances">Allowances</a>{% endblock %}
+{% block content %}
+<section class="grid g-side">
+  <div class="card flush"><div class="card-head"><h2>Staff</h2></div><div class="table-wrap"><table>
+    <thead><tr><th>Name</th><th>Position</th><th>Type</th><th>Login</th><th class="num">Basic salary</th><th>Status</th></tr></thead>
+    <tbody>{% for s in rows %}<tr><td><a class="row-link" href="/hr/staff/{{ s.id }}">{{ s.full_name }}</a></td><td>{{ s.position or '' }}<div class="small muted">{{ s.department or '' }}</div></td>
+      <td>{{ s.employment_type|capitalize }}</td><td>{{ s.user.username if s.user else '-' }}</td><td class="num">{{ s.basic_salary|tzs(False) }}</td>
+      <td>{{ status_badge('active' if s.is_active else 'inactive') }}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty">No staff profiles yet.</td></tr>{% endfor %}</tbody>
+  </table></div></div>
+  <div>
+    <div class="card"><div class="card-head">{{ ico('idcard','navy','sm') }}<h3>Payroll</h3></div>
+      {% if can_edit %}<form method="post" action="/hr/payroll" class="actions mb">{{ csrf(ctx) }}<input type="month" name="period" value="{{ period }}"><button class="btn sm" type="submit">Calculate</button></form>{% endif %}
+      <ul class="list">{% for r in runs %}<li><div class="grow"><a class="row-link" href="/hr/payroll/{{ r.id }}">{{ r.period }}</a></div>{{ status_badge(r.status) }}</li>{% else %}<li class="muted">No payroll yet.</li>{% endfor %}</ul>
+    </div>
+    {% if can_edit %}
+    <details class="box mt"><summary>Add staff member</summary>
+      <form method="post" action="/hr/staff">{{ csrf(ctx) }}{% include "hr/_staff_fields.html" %}
+        <label class="f mt"><span>Linked login (optional)</span><select name="user_id"><option value="">None</option>{% for u in users %}<option value="{{ u.id }}">{{ u.full_name }} ({{ u.username }})</option>{% endfor %}</select></label>
+        <div class="form-actions"><button class="btn sm" type="submit">Add</button></div></form></details>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge, bar %}
+{% block crumb %}{{ label }}{% endblock %}
+{% block top_actions %}<a class="btn ghost sm" href="?view={{ view }}&scope={{ scope }}&date={{ prev }}">&larr;</a><a class="btn ghost sm" href="?view={{ view }}&scope={{ scope }}&date={{ next }}">&rarr;</a>{% endblock %}
+{% block content %}
+<nav class="tabs">
+  <a href="?view=summary&scope=week" class="{{ 'on' if view == 'summary' and scope == 'week' }}">Weekly summary</a>
+  <a href="?view=summary&scope=month" class="{{ 'on' if view == 'summary' and scope == 'month' }}">Monthly summary</a>
+  <a href="?view=reports&scope={{ scope }}" class="{{ 'on' if view == 'reports' }}">Daily reports</a>
+</nav>
+{% if view == 'summary' %}
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Staff</th><th class="num">Reports</th><th class="num">Activities</th><th class="num">Orders won</th><th class="num">New customers</th><th class="num">Invoiced</th><th class="num">Collected</th><th class="num">Tasks done</th></tr></thead>
+  <tbody>{% for s in summary %}
+    <tr><td><strong>{{ s.user.full_name }}</strong><div class="small muted">{{ s.user.job_title or '' }}</div></td>
+      <td class="num">{% if s.reports < s.workdays %}<span class="badge warn">{{ s.reports }} / {{ s.workdays }}</span>{% else %}<span class="badge good">{{ s.reports }} / {{ s.workdays }}</span>{% endif %}</td>
+      <td class="num">{{ s.activities|num }}</td><td class="num">{{ s.orders_won|num }}</td><td class="num">{{ s.new_customers|num }}</td>
+      <td class="num">{{ s.revenue|tzs(False) }}</td><td class="num">{{ s.collections|tzs(False) }}</td><td class="num">{{ s.tasks_done }}</td></tr>
+  {% endfor %}</tbody>
+</table></div></div>
+{% if plan_rows %}
+<h2 class="mt2">Plan vs actual · {{ plan.title }}</h2>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Measure</th><th>For</th><th class="num">Target</th><th class="num">Actual</th><th>Progress</th><th>Assessment</th></tr></thead>
+  <tbody>{% for r in plan_rows %}
+    <tr><td>{{ r.label }}</td><td>{{ r.who.full_name if r.who else 'Company' }}</td>
+      <td class="num">{{ r.target|tzs(False) }}</td><td class="num">{{ r.actual|tzs(False) }}</td>
+      <td>{{ bar(r.pct, r.pace_mark, r.tone) }}</td><td><span class="badge {{ r.tone if r.tone != 'ok' else 'blue' }}">{{ r.status }}</span><div class="small muted">{{ r.sentence }}</div></td></tr>
+  {% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% else %}
+<form class="filters" method="get"><input type="hidden" name="view" value="reports"><input type="hidden" name="scope" value="{{ scope }}">
+  <label class="f"><span>Staff</span><select name="user"><option value="">All</option>{% for p in people %}<option value="{{ p.id }}" {{ 'selected' if q.get('user') == p.id|string }}>{{ p.full_name }}</option>{% endfor %}</select></label>
+  <button class="btn ghost">Filter</button></form>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Date</th><th>Staff</th><th>Achieved</th><th>Status</th></tr></thead>
+  <tbody>{% for r in rows %}<tr><td class="nowrap"><a class="row-link" href="/reports/{{ r.id }}">{{ r.on_date|dfmt }}</a></td><td>{{ r.user.full_name }}</td><td>{{ r.achievements[:160] }}</td><td>{{ status_badge(r.status) }}</td></tr>
+  {% else %}<tr><td colspan="4" class="empty">No reports in this period.</td></tr>{% endfor %}</tbody>
+</table></div></div>
+{% endif %}
+{% endblock %}

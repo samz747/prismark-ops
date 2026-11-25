@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf %}
+{% block crumb %}<a href="/hr">Staff & payroll</a> · {{ period_label }}{% endblock %}
+{% block top_actions %}<a class="btn ghost sm" href="?period={{ prev }}">&larr;</a><a class="btn ghost sm" href="?period={{ next }}">&rarr;</a>{% endblock %}
+{% block content %}
+
+<section class="grid g-side">
+  <div class="card flush"><div class="card-head"><h2>Allowances · {{ period_label }}</h2><span class="badge sand">Total {{ total|tzs }}</span></div><div class="table-wrap"><table>
+    <thead><tr><th>Staff</th><th>Type</th><th>Note</th><th>Approval</th><th class="num">TZS</th></tr></thead>
+    <tbody>{% for a in rows %}<tr><td>{{ a.staff.full_name }}</td><td>{{ a.kind }}{% if not a.taxable %} <span class="badge muted">Non taxable</span>{% endif %}</td><td>{{ a.note or '' }}</td>
+      <td>{% for d in docs.get(a.id, []) %}<a class="badge proof-ok" href="/files/{{ d.id }}" target="_blank" rel="noopener">{{ icon('clip') }} View</a>{% else %}<span class="badge proof-missing">{{ icon('alert') }} Missing</span>
+        {% if can_edit %}<details class="inline-attach"><summary>Attach</summary><form method="post" action="/files/upload" enctype="multipart/form-data">{{ csrf(ctx) }}<input type="hidden" name="entity" value="allowance"><input type="hidden" name="entity_id" value="{{ a.id }}"><input type="hidden" name="doc_type" value="payslip"><input type="hidden" name="back" value="/hr/allowances?period={{ period }}"><input type="file" name="file" required><button class="btn sm teal" type="submit">Upload</button></form></details>{% endif %}{% endfor %}</td>
+      <td class="num">{{ a.amount|tzs(False) }}</td></tr>
+    {% else %}<tr><td colspan="5" class="empty">No allowances this month.</td></tr>{% endfor %}</tbody></table></div>
+    <div class="card-head mt"><h3>Last six months</h3></div>
+    <div class="pill-row">{% for l, v in history %}<span class="badge blue">{{ l }}: {{ v|tzs(False) }}</span>{% endfor %}</div><div class="mb"></div>
+  </div>
+  {% if can_edit %}
+  <div class="card"><h3>Record allowance</h3>
+    <form method="post" action="/hr/allowances" enctype="multipart/form-data">{{ csrf(ctx) }}<input type="hidden" name="period" value="{{ period }}">
+      <label class="f mb"><span>Staff</span><select name="staff_id" required>{% for s in staff %}<option value="{{ s.id }}">{{ s.full_name }}</option>{% endfor %}</select></label>
+      <label class="f mb"><span>Type</span><select name="kind">{% for k in KINDS %}<option>{{ k }}</option>{% endfor %}</select></label>
+      <label class="f mb"><span>Amount (TZS)</span><input type="text" inputmode="decimal" name="amount" required></label>
+      <label class="f mb"><span>Note</span><input type="text" name="note" maxlength="300"></label>
+      <label class="check mb"><input type="checkbox" name="non_taxable" value="1"> Not taxable (e.g. per diem for business travel)</label>
+      <label class="f mb"><span>Approval / supporting document</span><input type="file" name="file"></label>
+      <button class="btn sm" type="submit">Save</button></form></div>
+  {% endif %}
+</section>
+{% endblock %}

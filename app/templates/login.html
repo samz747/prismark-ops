@@ -1,0 +1,35 @@
+{% from "macros.html" import icon, ico %}<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign in · Prismark Operations</title>
+<link rel="icon" href="/static/img/favicon.png"><link rel="stylesheet" href="/static/css/app.css">
+</head><body>
+<main class="login">
+  <section class="pane">
+    <img class="logo" src="/static/img/wordmark.png" alt="Prismark">
+    <h1>Welcome back</h1>
+    <p class="lead">Sign in to the Prismark operations system to manage customers, orders, documents and daily work.</p>
+    {% if error %}<div class="flash err">{{ icon('alert') }}{{ error }}</div>{% endif %}
+    <form method="post" action="/login" autocomplete="on">
+      <input type="hidden" name="pre_token" value="{{ pre_token }}">
+      <input type="hidden" name="next" value="{{ next }}">
+      <label class="f"><span>Username</span><input type="text" name="username" required autocomplete="username" autofocus maxlength="40"></label>
+      <label class="f"><span>Password</span><input type="password" name="password" required autocomplete="current-password" maxlength="200"></label>
+      <button class="btn lg pill" type="submit">Sign in {{ icon('arrow') }}</button>
+    </form>
+    <div class="secure-note">{{ icon('lock') }} Accounts are created by the Managing Director. Every session is recorded.</div>
+  </section>
+  <section class="visual">
+    {% with p='lg', cls='art' %}{% include "_art.html" %}{% endwith %}
+    <div class="caption">
+      <h2>Every customer, order and shilling with its paper trail.</h2>
+      <p>Local and international sourcing, from tender to confirmed payment.</p>
+      <div class="feats">
+        <div class="glass">{{ ico('building','pearl') }} Customers</div>
+        <div class="glass">{{ ico('package','teal') }} Orders</div>
+        <div class="glass">{{ ico('target','sand') }} Targets</div>
+      </div>
+    </div>
+  </section>
+</main>
+</body></html>

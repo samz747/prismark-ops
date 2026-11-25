@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge %}
+{% block crumb %}<a href="/hr">Staff & payroll</a>{% endblock %}
+{% block content %}
+<section class="grid g-side">
+  <div>
+    <div class="card flush"><div class="card-head"><h2>Pay history</h2></div><div class="table-wrap"><table>
+      <thead><tr><th>Month</th><th class="num">Gross</th><th class="num">PAYE</th><th class="num">NSSF</th><th class="num">Net</th><th></th></tr></thead>
+      <tbody>{% for l in lines %}<tr><td>{{ l.run.period }} {{ status_badge(l.run.status) }}</td><td class="num">{{ l.gross|tzs(False) }}</td><td class="num">{{ l.paye|tzs(False) }}</td><td class="num">{{ l.nssf_employee|tzs(False) }}</td><td class="num">{{ l.net|tzs(False) }}</td><td><a class="btn sm ghost" href="/hr/payslips/{{ l.id }}">Payslip</a></td></tr>
+      {% else %}<tr><td colspan="6" class="empty">No payroll yet.</td></tr>{% endfor %}</tbody></table></div></div>
+    <div class="card flush mt"><div class="card-head"><h2>Allowances</h2></div><div class="table-wrap"><table>
+      <thead><tr><th>Month</th><th>Type</th><th>Note</th><th class="num">TZS</th></tr></thead>
+      <tbody>{% for a in allows %}<tr><td>{{ a.period }}</td><td>{{ a.kind }}{% if not a.taxable %} <span class="badge muted">Non taxable</span>{% endif %}</td><td>{{ a.note or '' }}</td><td class="num">{{ a.amount|tzs(False) }}</td></tr>
+      {% else %}<tr><td colspan="4" class="empty">No allowances.</td></tr>{% endfor %}</tbody></table></div></div>
+  </div>
+  <div class="card">
+    {% if can_edit %}
+    <form method="post">{{ csrf(ctx) }}{% include "hr/_staff_fields.html" %}
+      <label class="check mt"><input type="checkbox" name="is_active" value="1" {{ 'checked' if s.is_active }}> Active</label>
+      <div class="form-actions"><button class="btn sm" type="submit">Save</button></div></form>
+    {% else %}
+    <dl class="dl"><dt>Position</dt><dd>{{ s.position or '-' }}</dd><dt>Basic</dt><dd>{{ s.basic_salary|tzs }}</dd><dt>Start</dt><dd>{{ s.start_date|dfmt }}</dd></dl>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

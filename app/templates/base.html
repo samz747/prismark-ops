@@ -1,0 +1,80 @@
+{% from "macros.html" import icon, ico, csrf %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ page_title|default('Prismark') }}{% endblock %} · Prismark Operations</title>
+  <link rel="icon" href="/static/img/favicon.png">
+  <link rel="stylesheet" href="/static/css/app.css">
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body>
+{% set path = request.url.path %}
+{% set u = ctx.user %}
+<div class="shell">
+  <aside class="side">
+    <a class="brand" href="/"><img src="/static/img/wordmark.png" alt="Prismark"><small>Operations</small></a>
+    <nav class="nav">
+      <div class="nav-group">Overview</div>
+      <a href="/" class="{{ 'active' if path == '/' }}"><span class="chip">{{ icon('grid') }}</span>Dashboard</a>
+      <a href="/notices" class="{{ 'active' if path.startswith('/notices') }}"><span class="chip">{{ icon('megaphone') }}</span>Notice board</a>
+      <a href="/tasks" class="{{ 'active' if path.startswith('/tasks') }}"><span class="chip">{{ icon('tasks') }}</span>Tasks & schedule</a>
+
+      {% if ctx.can('customers') or ctx.can('orders') or ctx.can('finance') or ctx.can('expenses') %}
+      <div class="nav-group">Business</div>
+      {% if ctx.can('customers') %}<a href="/customers" class="{{ 'active' if path.startswith('/customers') }}"><span class="chip">{{ icon('building') }}</span>Customers</a>{% endif %}
+      {% if ctx.can('orders') %}<a href="/orders" class="{{ 'active' if path.startswith('/orders') }}"><span class="chip">{{ icon('package') }}</span>Orders & sourcing</a>{% endif %}
+      {% if ctx.can('finance') %}<a href="/finance" class="{{ 'active' if path.startswith('/finance') }}"><span class="chip">{{ icon('invoice') }}</span>Invoices & payments</a>{% endif %}
+      {% if ctx.can('expenses') %}<a href="/expenses" class="{{ 'active' if path.startswith('/expenses') }}"><span class="chip">{{ icon('receipt') }}</span>Expenses</a>{% endif %}
+      <a href="/proofs" class="{{ 'active' if path.startswith('/proofs') }}"><span class="chip">{{ icon('clip') }}</span>Paper trail check</a>
+      {% endif %}
+
+      {% if ctx.can('reports') %}
+      <div class="nav-group">Planning</div>
+      <a href="/plans" class="{{ 'active' if path.startswith('/plans') }}"><span class="chip">{{ icon('target') }}</span>Plans & targets</a>
+      <a href="/reports" class="{{ 'active' if path.startswith('/reports') }}"><span class="chip">{{ icon('clipboard') }}</span>{{ 'Staff reports' if ctx.is_admin or ctx.can('reports','view') else 'My daily reports' }}</a>
+      {% endif %}
+
+      {% if ctx.can('hr') or ctx.can('tax') or ctx.can('finance','view') %}
+      <div class="nav-group">Money & people</div>
+      {% if ctx.can('finance','view') %}<a href="/finance/pnl" class="{{ 'active' if path.startswith('/finance/pnl') }}"><span class="chip">{{ icon('pie') }}</span>Profit & loss</a>{% endif %}
+      {% if ctx.can('hr','view') %}<a href="/hr" class="{{ 'active' if path.startswith('/hr') and not path.startswith('/hr/payslips') }}"><span class="chip">{{ icon('idcard') }}</span>Staff & payroll</a>{% endif %}
+      {% if ctx.can('hr') %}<a href="/hr/payslips" class="{{ 'active' if path.startswith('/hr/payslips') }}"><span class="chip">{{ icon('wallet') }}</span>My payslips</a>{% endif %}
+      {% if ctx.can('tax','view') %}<a href="/tax" class="{{ 'active' if path.startswith('/tax') }}"><span class="chip">{{ icon('landmark') }}</span>Tax & VAT</a>{% endif %}
+      {% endif %}
+
+      {% if ctx.is_admin %}
+      <div class="nav-group">Managing Director</div>
+      {% set ap = approvals_count(ctx.db) %}
+      <a href="/approvals" class="{{ 'active' if path.startswith('/approvals') }}"><span class="chip">{{ icon('shield') }}</span>Approvals{% if ap %}<span class="count">{{ ap }}</span>{% endif %}</a>
+      <a href="/admin/users" class="{{ 'active' if path.startswith('/admin/users') }}"><span class="chip">{{ icon('users') }}</span>Users & access</a>
+      <a href="/admin/activity" class="{{ 'active' if path.startswith('/admin/activity') }}"><span class="chip">{{ icon('activity') }}</span>Activity log</a>
+      <a href="/admin/settings" class="{{ 'active' if path.startswith('/admin/settings') }}"><span class="chip">{{ icon('settings') }}</span>Settings</a>
+      {% endif %}
+    </nav>
+  </aside>
+
+  <div class="main">
+    <header class="top">
+      <button class="btn ghost sm menu-btn js-menu" type="button" aria-label="Menu">{{ icon('menu') }}</button>
+      <div class="title">
+        <div class="crumb">{% block crumb %}Prismark Company Limited{% endblock %}</div>
+        <h1>{% block heading %}{{ page_title|default('Dashboard') }}{% endblock %}</h1>
+      </div>
+      <div class="actions">{% block top_actions %}{% endblock %}</div>
+      <div class="who">
+        <div class="avatar">{{ u.initials }}</div>
+        <div><div class="name">{{ u.full_name }}</div>
+          <div class="role">{{ 'Managing Director' if u.is_superadmin else (u.role_list|map('extract', ROLES)|join(', ') or u.job_title or 'Staff') }}</div></div>
+        <form method="post" action="/logout" class="inline">{{ csrf(ctx) }}
+          <button class="btn ghost sm" type="submit" title="Sign out">{{ icon('logout') }}</button></form>
+      </div>
+    </header>
+    <section class="content">
+      {% if flash_msg %}<div class="flash {{ 'err' if flash_kind == 'err' else 'ok' }}">{{ icon('alert' if flash_kind == 'err' else 'check') }}{{ flash_msg }}</div>{% endif %}
+      {% block content %}{% endblock %}
+    </section>
+  </div>
+</div>
+</body>
+</html>

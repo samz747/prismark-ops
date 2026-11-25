@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico %}
+{% block content %}
+<div class="attention">{{ ico('clip','sand','sm') }}<div><strong>Every figure must carry its paper trail.</strong><br>
+Figures still count and show everywhere in the system. This list shows each one that is waiting for its document, so it can be fixed.</div></div>
+<div class="card flush">
+  <div class="table-wrap"><table>
+    <thead><tr><th>Area</th><th>Reference</th><th>What is missing</th><th>Responsible</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr><td><span class="badge proof-missing">{{ r.area }}</span></td><td class="nowrap"><strong>{{ r.ref }}</strong></td>
+        <td>{{ r.what }}</td><td>{{ r.who }}</td><td class="right"><a class="btn sm ghost" href="{{ r.link }}">Attach</a></td></tr>
+    {% else %}<tr><td colspan="5" class="empty">{{ ico('check','teal') }}<p class="mt">Nothing missing. Every figure you can see has its document.</p></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

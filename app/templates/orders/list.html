@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, stage_badge %}
+{% block top_actions %}{% if can_create %}<a class="btn" href="/orders/new">{{ icon('plus') }} New order</a>{% endif %}{% endblock %}
+{% block content %}
+<nav class="tabs">
+  <a href="/orders" class="{{ 'on' if not q.get('stage') }}">All</a>
+  <a href="?stage=open" class="{{ 'on' if q.get('stage') == 'open' }}">Open</a>
+  {% for k, label in STAGES %}<a href="?stage={{ k }}" class="{{ 'on' if q.get('stage') == k }}">{{ label }}</a>{% endfor %}
+</nav>
+<form class="filters" method="get">
+  {% if q.get('stage') %}<input type="hidden" name="stage" value="{{ q.get('stage') }}">{% endif %}
+  <label class="f"><span>Search</span><input type="search" name="q" value="{{ q.get('q','') }}" placeholder="Ref, title, customer, LPO"></label>
+  <label class="f"><span>Sourcing</span><select name="type"><option value="">All</option><option value="local" {{ 'selected' if q.get('type')=='local' }}>Local</option><option value="international" {{ 'selected' if q.get('type')=='international' }}>International</option></select></label>
+  {% if ctx.level('orders') != 'own' %}<label class="f"><span>Sales rep</span><select name="rep"><option value="">All</option>{% for r in reps %}<option value="{{ r.id }}" {{ 'selected' if q.get('rep') == r.id|string }}>{{ r.full_name }}</option>{% endfor %}</select></label>{% endif %}
+  <button class="btn ghost" type="submit">Filter</button>
+</form>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Order</th><th>Customer</th><th>Sourcing</th><th>Stage</th><th>Documents</th><th>Sales</th><th class="num">Value (TZS)</th><th class="num">Margin</th></tr></thead>
+  <tbody>
+  {% for o in orders %}{% set rev = order_revenue(o) %}{% set cost = order_cost(o) %}
+  <tr>
+    <td><a class="row-link" href="/orders/{{ o.id }}">{{ o.ref }}</a><div class="small muted">{{ o.title }}</div></td>
+    <td>{{ o.customer.company_name }}</td>
+    <td><span class="badge {{ 'teal' if o.sourcing_type == 'international' else 'sand' }}">{{ o.sourcing_type|capitalize }}</span><div class="small muted">{{ o.origin or '' }}</div></td>
+    <td>{{ stage_badge(o.stage, STAGE_LABEL[o.stage]) }}{% if o.is_cancelled %} <span class="badge bad">Cancelled</span>{% endif %}</td>
+    <td>{% if missing[o.id] %}<span class="badge proof-missing">{{ icon('alert') }} {{ missing[o.id] }} missing</span>{% else %}<span class="badge proof-ok">{{ icon('check') }} Complete</span>{% endif %}</td>
+    <td>{{ o.sales.full_name if o.sales else '-' }}</td>
+    <td class="num">{{ rev|tzs(False) }}</td>
+    <td class="num">{% if rev %}{{ '%.1f'|format((rev - cost) / rev * 100) }}%{% else %}-{% endif %}</td>
+  </tr>
+  {% else %}<tr><td colspan="8" class="empty">No orders found.</td></tr>{% endfor %}
+  </tbody>
+</table></div></div>
+{% endblock %}

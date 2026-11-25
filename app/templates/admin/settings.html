@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf %}
+{% block content %}
+<form method="post" class="card narrow">{{ csrf(ctx) }}
+  <h2>Rates and thresholds</h2>
+  <p class="hint">Check these against current TRA, NSSF and WCF rates whenever the Finance Act changes. Every change is logged.</p>
+  {% for key, label in labels.items() %}
+  <label class="f mt"><span>{{ label }}</span><input type="text" name="{{ key }}" value="{{ values[key] }}" required maxlength="200"></label>
+  {% endfor %}
+  <div class="form-actions"><button class="btn" type="submit">Save settings</button></div>
+</form>
+{% endblock %}

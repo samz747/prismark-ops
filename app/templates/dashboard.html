@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, bar, stage_badge %}
+{% block crumb %}{{ period_label }} · {{ 'Company overview' if company else 'My performance' }}{% endblock %}
+{% block content %}
+<section class="hero">
+  {% with p='hero', cls='art' %}{% include "_art.html" %}{% endwith %}
+  <div class="copy">
+    <div class="eyebrow">{{ period_label }} · {{ 'Company overview' if company else 'Your performance' }}</div>
+    <h1>{{ greeting }}, {{ ctx.user.full_name.split()[0] }}</h1>
+    <p class="lead">
+      {% if target %}{{ target.sentence }}
+      {% else %}{{ open_orders }} open order{{ 's' if open_orders != 1 }} worth {{ pipeline|tzs }} in the pipeline before invoicing.{% endif %}
+    </p>
+    <div class="actions mt">
+      {% if ctx.is_admin %}
+        <a class="btn sand lg pill" href="/approvals">{{ icon('shield') }} Approvals{% if approvals %} ({{ approvals }}){% endif %}</a>
+        <a class="btn ghost pill" href="/reports">Staff reports{% if pending_reports %} ({{ pending_reports }} new){% endif %}</a>
+      {% else %}
+        {% if ctx.can('customers') %}<a class="btn sand lg pill" href="/customers">{{ icon('building') }} My customers</a>{% endif %}
+        <a class="btn ghost pill" href="/reports">Daily report</a>
+      {% endif %}
+    </div>
+  </div>
+  <div class="stat-float">
+    <div class="glass">
+      <div class="k">Sales invoiced this month</div>
+      <div class="v">{{ revenue|tzs }}</div>
+      {% if target %}
+        <div class="mt">{{ bar(target.pct, target.pace_mark, 'teal') }}</div>
+        <div class="s">{{ '%.0f'|format(target.pct) }}% of {{ target.target|tzs }} · {{ target.status }}</div>
+      {% else %}<div class="s">No revenue target set for this month</div>{% endif %}
+    </div>
+  </div>
+</section>
+
+<section class="feature">
+  <div class="item">{{ ico('trend','pearl','lg') }}<div class="k">Invoiced (excl. VAT)</div><div class="v">{{ revenue|tzs(False) }}</div><div class="s">TZS this month</div></div>
+  <div class="item">{{ ico('wallet','sand','lg') }}<div class="k">Collected & confirmed</div><div class="v">{{ collections|tzs(False) }}</div><div class="s">TZS this month</div></div>
+  <div class="item">{{ ico('clock','navy','lg') }}<div class="k">Outstanding</div><div class="v">{{ outstanding|tzs(False) }}</div><div class="s">{{ overdue|tzs }} overdue</div></div>
+  <div class="item">{{ ico('coins','turq','lg') }}<div class="k">Gross profit</div><div class="v">{{ gp|tzs(False) }}</div><div class="s">Pipeline {{ pipeline|tzs }}</div></div>
+</section>
+
+<section class="grid g3 mt2">
+  {% if ctx.is_admin %}
+  <div class="tile blue">
+    {{ ico('shield','pearl') }}
+    <h3>Waiting for your decision</h3>
+    <div class="big">{{ approvals }}</div>
+    <p>Payments to confirm, expenses to approve and payroll drafts.</p>
+    <a class="more" href="/approvals">Open approvals &rarr;</a>
+  </div>
+  {% else %}
+  <div class="tile blue">
+    {{ ico('tasks','pearl') }}
+    <h3>My open tasks</h3>
+    <div class="big">{{ my_tasks|length }}</div>
+    <p>Assigned work and today's schedule.</p>
+    <a class="more" href="/tasks">Open tasks &rarr;</a>
+  </div>
+  {% endif %}
+  <div class="tile sand">
+    {{ ico('clip','navy') }}
+    <h3>Paper trail check</h3>
+    <div class="big">{{ proofs|length }}</div>
+    <p>{{ 'Figures waiting for their supporting document.' if proofs else 'Every figure has its supporting document.' }}</p>
+    <a class="more" href="/proofs">Review missing proof &rarr;</a>
+  </div>
+  <div class="tile pearl">
+    {{ ico('target','teal') }}
+    <h3>Milestones this month</h3>
+    {% set done = milestones|selectattr('done_at')|list|length %}
+    <div class="big">{{ done }} / {{ milestones|length }}</div>
+    <p>{% if milestones %}{{ milestones|length - done }} still open.{% else %}No milestones set for {{ period_label }}.{% endif %}</p>
+    <a class="more" href="/plans">Plan vs actual &rarr;</a>
+  </div>
+</section>
+
+<section class="grid g-side mt2">
+  <div class="card">
+    <div class="card-head"><h2>Invoiced vs collected</h2>
+      <span class="badge blue">Invoiced</span><span class="badge teal">Collected</span></div>
+    <svg viewBox="0 0 640 240" class="chart" role="img" aria-label="Six month trend">
+      {% for g in range(5) %}<line x1="40" x2="630" y1="{{ 20 + g*45 }}" y2="{{ 20 + g*45 }}" stroke="#EEEAE2"/>{% endfor %}
+      {% for t in trend %}
+        {% set x = 62 + loop.index0 * 96 %}
+        {% set h1 = (t.value / peak * 175)|float %}{% set h2 = (t.coll / peak * 175)|float %}
+        <rect x="{{ x }}" y="{{ 200 - h1 }}" width="28" height="{{ h1 }}" rx="7" fill="#2C59A8"/>
+        <rect x="{{ x + 32 }}" y="{{ 200 - h2 }}" width="28" height="{{ h2 }}" rx="7" fill="#35BFC2"/>
+        <text x="{{ x + 30 }}" y="224" text-anchor="middle" font-size="12" fill="#66718A" font-family="Inter">{{ t.label }}</text>
+        {% if t.value %}<text x="{{ x + 14 }}" y="{{ 194 - h1 }}" text-anchor="middle" font-size="9.5" fill="#091739" font-family="Inter">{{ '%.1f'|format(t.value / 1000000) }}M</text>{% endif %}
+      {% endfor %}
+    </svg>
+  </div>
+  <div class="card">
+    {% if company %}
+      <div class="card-head"><h2>Sales team this month</h2></div>
+      <ul class="list">
+        {% for r in leaders %}
+        <li><div class="avatar">{{ r.user.initials }}</div>
+          <div class="grow"><strong>{{ r.user.full_name }}</strong><div class="small muted">{{ r.activities|int }} activities · collected {{ r.collections|tzs }}</div></div>
+          <div class="num"><strong>{{ r.revenue|tzs(False) }}</strong></div></li>
+        {% else %}<li class="muted">No sales staff yet.</li>{% endfor %}
+      </ul>
+    {% else %}
+      <div class="card-head"><h2>My tasks</h2><a class="btn ghost sm" href="/tasks">All</a></div>
+      <ul class="list">
+        {% for a in my_tasks %}
+        <li>{{ ico('tasks', 'teal', 'sm') }}<div class="grow"><strong>{{ a.task.title }}</strong>
+          <div class="small muted">{{ a.task.kind|capitalize }}{% if a.task.due_date %} · due {{ a.task.due_date|dfmt }}{% endif %}{% if a.task.start_time %} · {{ a.task.start_time }}{% endif %}</div></div></li>
+        {% else %}<li class="muted">Nothing open. Plan your day in Tasks & schedule.</li>{% endfor %}
+      </ul>
+    {% endif %}
+  </div>
+</section>
+
+<section class="grid g3 mt2">
+  <div class="card">
+    <div class="card-head">{{ ico('package','navy','sm') }}<h3>Open orders by stage</h3></div>
+    <ul class="list">
+      {% for key, label in STAGE_LABEL.items() if stage_counts.get(key) %}
+      <li><div class="grow">{{ stage_badge(key, label) }}</div><strong>{{ stage_counts[key] }}</strong></li>
+      {% else %}<li class="muted">No open orders.</li>{% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-head">{{ ico('calendar','teal','sm') }}<h3>Follow ups due</h3></div>
+    <ul class="list">
+      {% for a in follow_ups %}
+      <li><div class="grow"><a class="row-link" href="/customers/{{ a.customer_id }}">{{ a.customer.company_name }}</a>
+        <div class="small muted">{{ a.next_action }}</div></div>
+        <span class="badge {{ 'bad' if a.next_action_date < today else 'warn' }}">{{ a.next_action_date|dfmt }}</span></li>
+      {% else %}<li class="muted">No follow ups due in the next 3 days.</li>{% endfor %}
+    </ul>
+  </div>
+  <div class="card">
+    <div class="card-head">{{ ico('alert','sand','sm') }}<h3>Customers gone quiet</h3></div>
+    <ul class="list">
+      {% for c, last in quiet %}
+      <li><div class="grow"><a class="row-link" href="/customers/{{ c.id }}">{{ c.company_name }}</a>
+        <div class="small muted">{{ c.assigned_sales.full_name if c.assigned_sales else 'Unassigned' }}</div></div>
+        <span class="small muted">{{ ('Last: ' ~ (last|dfmt)) if last else 'No activity yet' }}</span></li>
+      {% else %}<li class="muted">Every active customer had contact in the last 30 days.</li>{% endfor %}
+    </ul>
+  </div>
+</section>
+{% endblock %}

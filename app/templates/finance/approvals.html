@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf %}
+{% block content %}
+<section class="card">
+  <div class="card-head">{{ ico('wallet','teal','sm') }}<h2>Payments to confirm ({{ payments|length }})</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Invoice</th><th>Customer</th><th>Recorded by</th><th>Date</th><th class="num">Amount</th><th>Proof</th><th>Decision</th></tr></thead>
+    <tbody>{% for p in payments %}
+      <tr><td><a class="row-link" href="/finance/invoices/{{ p.invoice_id }}">{{ p.invoice.number }}</a></td><td>{{ p.invoice.customer.company_name }}</td>
+        <td>{{ p.recorded_by.full_name }}</td><td class="nowrap">{{ p.paid_on|dfmt }}<div class="small muted">{{ p.method }} {{ p.reference or '' }}</div></td>
+        <td class="num">{{ p.amount|money(p.currency) }}{% if p.currency != 'TZS' %}<div class="small muted">{{ p.amount_tzs|tzs }}</div>{% endif %}</td>
+        <td>{% for d in pdocs.get(p.id, []) %}<a class="badge proof-ok" href="/files/{{ d.id }}" target="_blank" rel="noopener">{{ icon('clip') }} View</a>{% else %}<span class="badge proof-missing">{{ icon('alert') }} Missing</span>{% endfor %}</td>
+        <td><form method="post" action="/finance/payments/{{ p.id }}/review" class="actions">{{ csrf(ctx) }}
+          <input type="text" name="note" placeholder="Note" maxlength="300">
+          <button class="btn sm good" name="decision" value="confirmed">Received</button><button class="btn sm danger" name="decision" value="rejected">Reject</button></form></td></tr>
+    {% else %}<tr><td colspan="7" class="empty">No payments waiting.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<section class="card mt">
+  <div class="card-head">{{ ico('receipt','sand','sm') }}<h2>Expenses to approve ({{ expenses|length }})</h2></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Category</th><th>Description</th><th>Customer</th><th>Submitted by</th><th class="num">Amount</th><th>Receipt</th><th>Decision</th></tr></thead>
+    <tbody>{% for e in expenses %}
+      <tr><td class="nowrap">{{ e.on_date|dfmt }}</td><td>{{ e.category }}</td><td><a href="/expenses/{{ e.id }}">{{ e.description }}</a></td><td>{{ e.customer.company_name if e.customer else '-' }}</td>
+        <td>{{ e.submitted_by.full_name }}</td><td class="num">{{ e.amount|money(e.currency) }}</td>
+        <td>{% for d in edocs.get(e.id, []) %}<a class="badge proof-ok" href="/files/{{ d.id }}" target="_blank" rel="noopener">{{ icon('clip') }} View</a>{% else %}<span class="badge proof-missing">{{ icon('alert') }} Missing</span>{% endfor %}</td>
+        <td><form method="post" action="/expenses/{{ e.id }}/review" class="actions">{{ csrf(ctx) }}<input type="hidden" name="back" value="/approvals">
+          <button class="btn sm good" name="decision" value="approved">Approve</button><button class="btn sm danger" name="decision" value="rejected">Reject</button></form></td></tr>
+    {% else %}<tr><td colspan="8" class="empty">No expenses waiting.</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+<section class="grid g2 mt">
+  <div class="card"><div class="card-head">{{ ico('idcard','navy','sm') }}<h2>Payroll drafts</h2></div>
+    <ul class="list">{% for r in runs %}<li><div class="grow"><strong>{{ r.period }}</strong></div><a class="btn sm" href="/hr/payroll/{{ r.id }}">Review</a></li>{% else %}<li class="muted">No payroll waiting.</li>{% endfor %}</ul></div>
+  <div class="card"><div class="card-head">{{ ico('clipboard','teal','sm') }}<h2>Daily reports to review</h2></div>
+    <ul class="list">{% for d in reports %}<li><div class="grow"><strong>{{ d.user.full_name }}</strong><div class="small muted">{{ d.on_date|dfmt }}</div></div><a class="btn sm ghost" href="/reports/{{ d.id }}">Read</a></li>{% else %}<li class="muted">All reports reviewed.</li>{% endfor %}</ul></div>
+</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, csrf, currency_fields %}
+{% block crumb %}<a href="/orders">Orders</a>{% endblock %}
+{% block content %}
+<form method="post" class="card" enctype="multipart/form-data">
+  {{ csrf(ctx) }}
+  <h2>Order</h2>
+  <div class="form-grid three">
+    <label class="f"><span>Customer <em>*</em></span>
+      <select name="customer_id" required {{ 'disabled' if o }}>
+        <option value="">Select customer</option>
+        {% for c in customers %}<option value="{{ c.id }}" {{ 'selected' if c.id == preselect }}>{{ c.company_name }} ({{ c.code }})</option>{% endfor %}
+      </select>{% if o %}<input type="hidden" name="customer_id" value="{{ o.customer_id }}">{% endif %}</label>
+    <label class="f"><span>Title <em>*</em></span><input type="text" name="title" required maxlength="200" value="{{ o.title if o }}" placeholder="e.g. Industrial bearings for plant 2"></label>
+    <label class="f"><span>Tender / RFQ reference</span><input type="text" name="tender_ref" maxlength="80" value="{{ o.tender_ref or '' if o }}"></label>
+    <label class="f"><span>Sourcing</span><select name="sourcing_type"><option value="local" {{ 'selected' if o and o.sourcing_type == 'local' }}>Local</option><option value="international" {{ 'selected' if o and o.sourcing_type == 'international' }}>International</option></select></label>
+    <label class="f"><span>Sourced from (location)</span><input type="text" name="origin" maxlength="120" value="{{ o.origin or '' if o }}" placeholder="Kariakoo / Guangzhou, China"></label>
+    <label class="f"><span>Supplier</span><input type="text" name="supplier_name" maxlength="160" value="{{ o.supplier_name or '' if o }}"></label>
+    {{ currency_fields(usd_rate, o.currency if o else 'TZS', o.exchange_rate if o else None) }}
+    <label class="f"><span>Expected delivery</span><input type="date" name="expected_delivery" value="{{ o.expected_delivery.isoformat() if o and o.expected_delivery }}"></label>
+    {% if ctx.level('orders') == 'edit' %}
+    <label class="f"><span>Sales officer</span><select name="sales_id"><option value="">Customer's rep</option>{% for r in reps %}<option value="{{ r.id }}" {{ 'selected' if o and o.sales_id == r.id }}>{{ r.full_name }}</option>{% endfor %}</select></label>
+    {% endif %}
+    <label class="f"><span>Logistics officer</span><select name="logistics_id"><option value="">None</option>{% for r in staff %}<option value="{{ r.id }}" {{ 'selected' if o and o.logistics_id == r.id }}>{{ r.full_name }}</option>{% endfor %}</select></label>
+    <label class="f full"><span>Notes</span><textarea name="notes">{{ o.notes or '' if o }}</textarea></label>
+  </div>
+  <div class="sep"></div>
+  <div class="card-head"><h2>Items (selling prices, in the order currency)</h2><button type="button" class="btn ghost sm js-add-row" data-target="items-body">{{ icon('plus') }} Add item</button></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Description</th><th>Qty</th><th>Unit</th><th>Unit price</th><th class="num">Line total</th></tr></thead>
+    <tbody id="items-body">
+      {% for it in (o.items if o and o.items else [None, None, None]) %}
+      <tr>
+        <td><input type="text" name="item_desc" maxlength="250" value="{{ it.description if it }}"></td>
+        <td><input type="text" inputmode="decimal" name="item_qty" value="{{ it.quantity|num if it }}"></td>
+        <td><input type="text" name="item_unit" maxlength="20" value="{{ it.unit if it else 'pcs' }}"></td>
+        <td><input type="text" inputmode="decimal" name="item_price" value="{{ it.unit_price if it }}"></td>
+        <td class="num js-line">0</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot><tr><td colspan="4">Total (excl. VAT)</td><td class="num" id="items-total">0</td></tr></tfoot>
+  </table></div>
+  {% if not o %}
+  <div class="sep"></div>
+  <label class="f"><span>Tender / RFQ document (optional now, required before invoicing)</span><input type="file" name="file"></label>
+  {% endif %}
+  <div class="form-actions"><a class="btn ghost" href="{{ '/orders/%d'|format(o.id) if o else '/orders' }}">Cancel</a><button class="btn" type="submit">Save order</button></div>
+</form>
+{% endblock %}

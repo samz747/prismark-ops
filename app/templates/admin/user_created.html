@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico %}
+{% block heading %}{{ 'Password reset' if reset else 'User created' }}{% endblock %}
+{% block content %}
+<div class="card narrow">
+  <div class="card-head">{{ ico('lock','navy') }}<h2>{{ u.full_name }}</h2></div>
+  <dl class="dl"><dt>Username</dt><dd><strong>{{ u.username }}</strong></dd></dl>
+  <p class="mt">Temporary password (shown only once):</p>
+  <div class="code">{{ temp }}</div>
+  <p class="hint mt">Give it to the person directly, not by group chat or email. They must change it at first login. If it is lost, reset it again.</p>
+  <div class="form-actions"><a class="btn" href="/admin/users/{{ u.id }}">Continue</a></div>
+</div>
+{% endblock %}

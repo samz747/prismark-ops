@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, doc_list, uploader, status_badge %}
+{% block crumb %}<a href="/expenses">Expenses</a>{% endblock %}
+{% block content %}
+<section class="grid g-side">
+  <div class="card">
+    <div class="card-head"><h2>{{ x.description }}</h2>{{ status_badge(x.status) }}</div>
+    <dl class="dl">
+      <dt>Date</dt><dd>{{ x.on_date|dfmt }}</dd><dt>Category</dt><dd>{{ x.category }}</dd>
+      <dt>Amount</dt><dd>{{ x.amount|money(x.currency) }}{% if x.currency != 'TZS' %} ({{ x.amount_tzs|tzs }} at {{ x.exchange_rate|num }}){% endif %}</dd>
+      <dt>Claimable VAT</dt><dd>{{ x.vat_amount|tzs }}</dd><dt>Paid to</dt><dd>{{ x.payee or '-' }}</dd>
+      <dt>Customer</dt><dd>{% if x.customer %}<a href="/customers/{{ x.customer_id }}">{{ x.customer.company_name }}</a>{% else %}-{% endif %}</dd>
+      <dt>Order</dt><dd>{% if x.order %}<a href="/orders/{{ x.order_id }}">{{ x.order.ref }}</a>{% else %}-{% endif %}</dd>
+      <dt>Submitted</dt><dd>{{ x.submitted_by.full_name }} · {{ x.submitted_at|eat }}</dd>
+      <dt>Reviewed</dt><dd>{{ (x.approved_by.full_name ~ ' · ' ~ (x.approved_at|eat)) if x.approved_by else '-' }}{% if x.review_note %}<div class="small">{{ x.review_note }}</div>{% endif %}</dd>
+    </dl>
+    {% if ctx.is_admin and x.status == 'pending' %}
+    <form method="post" action="/expenses/{{ x.id }}/review" class="actions mt">{{ csrf(ctx) }}
+      <input type="text" name="note" placeholder="Note (optional)" maxlength="300">
+      <button class="btn good" name="decision" value="approved">Approve</button><button class="btn danger" name="decision" value="rejected">Reject</button></form>
+    {% endif %}
+  </div>
+  <div class="card"><h3>Receipt</h3>
+    {{ doc_list(docs, ctx, '/expenses/%d'|format(x.id)) }}
+    {% if not docs %}<p><span class="badge proof-missing">{{ icon('alert') }} Receipt missing</span></p>{% endif %}
+    {% if can_write %}{{ uploader(ctx, 'expense', x.id, '/expenses/%d'|format(x.id), ['receipt','other'], 'receipt') }}{% endif %}
+  </div>
+</section>
+{% endblock %}

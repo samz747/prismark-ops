@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, csrf %}
+{% block content %}
+<form method="post" class="card">
+  {{ csrf(ctx) }}
+  <h2>Company</h2>
+  <div class="form-grid three">
+    <label class="f full"><span>Company name <em>*</em></span><input type="text" name="company_name" required maxlength="160" value="{{ c.company_name if c }}"></label>
+    <label class="f"><span>TIN</span><input type="text" name="tin" maxlength="30" value="{{ c.tin or '' if c }}"></label>
+    <label class="f"><span>VRN</span><input type="text" name="vrn" maxlength="30" value="{{ c.vrn or '' if c }}"></label>
+    <label class="f"><span>Sector</span><input type="text" name="sector" maxlength="80" value="{{ c.sector or '' if c }}" placeholder="Manufacturing, mining, hospitality..."></label>
+    <label class="f"><span>Phone</span><input type="tel" name="phone" maxlength="40" value="{{ c.phone or '' if c }}"></label>
+    <label class="f"><span>Email</span><input type="email" name="email" maxlength="160" value="{{ c.email or '' if c }}"></label>
+    <label class="f"><span>Website</span><input type="text" name="website" maxlength="160" value="{{ c.website or '' if c }}"></label>
+    <label class="f"><span>Address</span><input type="text" name="address" maxlength="200" value="{{ c.address or '' if c }}"></label>
+    <label class="f"><span>City</span><input type="text" name="city" maxlength="80" value="{{ c.city if c else 'Dar es Salaam' }}"></label>
+    <label class="f"><span>Country</span><input type="text" name="country" maxlength="60" value="{{ c.country if c else 'Tanzania' }}"></label>
+    <label class="f"><span>How we found them</span><select name="source"><option value="">Select</option>{% for s in SOURCES %}<option {{ 'selected' if c and c.source == s }}>{{ s }}</option>{% endfor %}</select></label>
+    <label class="f"><span>Status</span><select name="status">{% for s in STATUSES %}<option value="{{ s }}" {{ 'selected' if c and c.status == s }}>{{ s|capitalize }}</option>{% endfor %}</select></label>
+    <label class="f"><span>Payment terms (days)</span><input type="number" name="payment_terms_days" min="0" value="{{ c.payment_terms_days if c else 30 }}"></label>
+    {% if not c and ctx.level('customers') == 'edit' %}
+    <label class="f"><span>Sales representative</span><select name="assigned_sales_id"><option value="">{{ 'Unassigned' if ctx.is_admin else 'Me' }}</option>{% for r in reps %}<option value="{{ r.id }}">{{ r.full_name }}</option>{% endfor %}</select></label>
+    {% endif %}
+    <label class="f full"><span>Attention note (shown every time this customer is opened)</span><textarea name="attention_note" placeholder="e.g. Pays late, insist on advance payment">{{ c.attention_note or '' if c }}</textarea></label>
+  </div>
+  {% if not c %}
+  <div class="sep"></div>
+  <h2>Main contact person</h2>
+  <div class="form-grid">
+    <label class="f"><span>Name</span><input type="text" name="contact_name" maxlength="120"></label>
+    <label class="f"><span>Position</span><input type="text" name="contact_position" maxlength="80" placeholder="Procurement officer"></label>
+    <label class="f"><span>Phone</span><input type="tel" name="contact_phone" maxlength="40"></label>
+    <label class="f"><span>Email</span><input type="email" name="contact_email" maxlength="160"></label>
+  </div>
+  {% endif %}
+  <div class="form-actions"><a class="btn ghost" href="{{ '/customers/%d'|format(c.id) if c else '/customers' }}">Cancel</a><button class="btn" type="submit">Save customer</button></div>
+</form>
+{% endblock %}

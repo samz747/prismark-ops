@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, status_badge %}
+{% block crumb %}<a href="/hr">Staff & payroll</a>{% endblock %}
+{% block top_actions %}{{ status_badge(run.status) }}
+{% if run.status == 'draft' and can_edit %}<form method="post" action="/hr/payroll" class="inline">{{ csrf(ctx) }}<input type="hidden" name="period" value="{{ run.period }}"><button class="btn ghost sm">Recalculate</button></form>{% endif %}
+{% if run.status == 'draft' and ctx.is_admin %}<form method="post" action="/hr/payroll/{{ run.id }}/approve" class="inline" data-confirm="Approve and lock this payroll?">{{ csrf(ctx) }}<button class="btn good">Approve payroll</button></form>{% endif %}{% endblock %}
+{% block content %}
+<section class="grid g4 mb">
+  <div class="card kpi">{{ ico('wallet','navy','sm') }}<div><div class="k">Gross pay</div><div class="v">{{ totals.gross|tzs }}</div></div></div>
+  <div class="card kpi">{{ ico('coins','teal','sm') }}<div><div class="k">Net to staff</div><div class="v">{{ totals.net|tzs }}</div></div></div>
+  <div class="card kpi">{{ ico('landmark','sand','sm') }}<div><div class="k">PAYE + SDL to TRA</div><div class="v">{{ (totals.paye + totals.sdl)|tzs }}</div></div></div>
+  <div class="card kpi">{{ ico('shield','pearl','sm') }}<div><div class="k">NSSF (both shares)</div><div class="v">{{ (totals.nssf_employee + totals.nssf_employer)|tzs }}</div></div></div>
+</section>
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>Staff</th><th class="num">Basic</th><th class="num">Allowances</th><th class="num">Gross</th><th class="num">NSSF 10%</th><th class="num">PAYE</th><th class="num">Net pay</th><th class="num">Employer NSSF</th><th class="num">SDL</th><th class="num">WCF</th><th></th></tr></thead>
+  <tbody>{% for l in run.lines %}<tr><td>{{ l.staff.full_name }}</td><td class="num">{{ l.basic|tzs(False) }}</td><td class="num">{{ l.allowances|tzs(False) }}</td><td class="num">{{ l.gross|tzs(False) }}</td>
+    <td class="num">{{ l.nssf_employee|tzs(False) }}</td><td class="num">{{ l.paye|tzs(False) }}</td><td class="num"><strong>{{ l.net|tzs(False) }}</strong></td>
+    <td class="num">{{ l.nssf_employer|tzs(False) }}</td><td class="num">{{ l.sdl|tzs(False) }}</td><td class="num">{{ l.wcf|tzs(False) }}</td><td><a class="btn sm ghost" href="/hr/payslips/{{ l.id }}">Payslip</a></td></tr>{% endfor %}</tbody>
+  <tfoot><tr><td>Total</td>{% for k in ['basic','allowances','gross','nssf_employee','paye','net','nssf_employer','sdl','wcf'] %}<td class="num">{{ totals[k]|tzs(False) }}</td>{% endfor %}<td></td></tr></tfoot>
+</table></div></div>
+<p class="hint mt">PAYE uses the monthly resident bands in Settings. {{ 'SDL is applied (employers with 10 or more employees).' if sdl_applies else 'SDL is switched off in Settings.' }} PAYE and SDL are due to TRA by the 7th of the following month.</p>
+{% if run.approved_at %}<p class="small muted">Approved {{ run.approved_at|eat }}</p>{% endif %}
+{% endblock %}

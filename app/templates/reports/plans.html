@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, bar, doc_list, uploader %}
+{% block crumb %}{{ period_label }}{% endblock %}
+{% block top_actions %}<a class="btn ghost sm" href="?period={{ prev }}">&larr;</a><a class="btn ghost sm" href="?period={{ next }}">&rarr;</a>{% endblock %}
+{% macro assess_row(r) %}
+<div class="card">
+  <div class="card-head">{{ ico('trend' if r.money else 'target', {'good':'teal','ok':'navy','warn':'sand','bad':'red','muted':'pearl'}[r.tone], 'sm') }}
+    <h3>{{ r.label }}{% if r.who %} · {{ r.who.full_name }}{% endif %}</h3>
+    <span class="badge {{ r.tone if r.tone != 'ok' else 'blue' }}">{{ r.status }}</span>
+    {% if ctx.is_admin %}<form method="post" action="/targets/{{ r.id }}/delete" data-confirm="Remove this target?">{{ csrf(ctx) }}<button class="link small">Remove</button></form>{% endif %}
+  </div>
+  {{ bar(r.pct, r.pace_mark, r.tone) }}
+  <p class="small mt">{{ r.sentence }}</p>
+</div>
+{% endmacro %}
+{% block content %}
+{% if not plan %}
+  <div class="card narrow">
+    <h2>No plan for {{ period_label }}</h2>
+    {% if ctx.is_admin %}
+    <form method="post" action="/plans">{{ csrf(ctx) }}<input type="hidden" name="period" value="{{ period }}">
+      <label class="f mb"><span>Title</span><input type="text" name="title" required maxlength="200" value="Plan for {{ period_label }}"></label>
+      <label class="f mb"><span>Focus for the month</span><textarea name="summary"></textarea></label>
+      <label class="check mb"><input type="checkbox" name="copy_previous" value="1" checked> Copy targets from the previous month</label>
+      <button class="btn" type="submit">Create plan</button>
+    </form>
+    {% else %}<p class="muted">The Managing Director has not uploaded the plan for this month yet.</p>{% endif %}
+  </div>
+{% else %}
+<section class="hero">
+  {% with p='pl', cls='art' %}{% include "_art.html" %}{% endwith %}
+  <div class="copy">
+    <div class="eyebrow">{{ period_label }} · Plan vs actual</div>
+    <h1>{{ plan.title }}</h1>
+    <p class="lead">{{ plan.summary or '' }}</p>
+    <p class="lead small">Every figure below is measured from system records (invoices, confirmed payments, logged activities, LPOs), not from what anyone reports.</p>
+  </div>
+</section>
+
+{% if company_rows %}
+<h2 class="mt2">Company targets</h2>
+<section class="grid g2">{% for r in company_rows %}{{ assess_row(r) }}{% endfor %}</section>
+{% endif %}
+{% for name, rs in people.items() %}
+<h2 class="mt2">{{ name }}</h2>
+<section class="grid g2">{% for r in rs %}{{ assess_row(r) }}{% endfor %}</section>
+{% endfor %}
+{% if not company_rows and not people %}<p class="muted mt">No targets set{{ ' for you' if not see_all }} yet.</p>{% endif %}
+
+<section class="grid g2 mt2">
+  <div class="card">
+    <div class="card-head">{{ ico('flag','sand','sm') }}<h2>Milestones</h2></div>
+    <ul class="list">{% for m in milestones %}
+      <li><div class="grow"><strong>{{ m.title }}</strong><div class="small muted">{{ m.owner.full_name if m.owner else 'Company' }} · due {{ m.due_date|dfmt }}</div></div>
+        {% if m.done_at %}<span class="badge good">Done {{ m.done_at|eat('%d %b') }}</span>{% elif m.due_date < today %}<span class="badge bad">Overdue</span>{% else %}<span class="badge muted">Open</span>{% endif %}
+        {% if ctx.is_admin or m.owner_id == ctx.user.id %}<form method="post" action="/milestones/{{ m.id }}/toggle">{{ csrf(ctx) }}<button class="btn sm ghost">{{ 'Reopen' if m.done_at else 'Mark done' }}</button></form>{% endif %}</li>
+    {% else %}<li class="muted">No milestones.</li>{% endfor %}</ul>
+  </div>
+  <div class="card">
+    <div class="card-head">{{ ico('file','navy','sm') }}<h2>Plan document</h2></div>
+    {{ doc_list(docs, ctx, '/plans?period=' ~ period) }}
+    {% if not docs %}<p class="muted">No plan document uploaded.</p>{% endif %}
+    {% if ctx.is_admin %}{{ uploader(ctx, 'plan', plan.id, '/plans?period=' ~ period, ['plan','other'], 'plan') }}{% endif %}
+  </div>
+</section>
+
+{% if ctx.is_admin %}
+<section class="grid g3 mt2">
+  <div class="card"><h3>Set a target</h3>
+    <form method="post" action="/plans/{{ plan.id }}/targets">{{ csrf(ctx) }}
+      <label class="f mb"><span>Measure</span><select name="metric">{% for k, v in METRICS.items() %}<option value="{{ k }}">{{ v }}</option>{% endfor %}</select></label>
+      <label class="f mb"><span>For</span><select name="user_id"><option value="">Whole company</option>{% for s in staff %}<option value="{{ s.id }}">{{ s.full_name }}</option>{% endfor %}</select></label>
+      <label class="f mb"><span>Target value</span><input type="text" inputmode="decimal" name="value" required></label>
+      <button class="btn sm" type="submit">Save target</button></form></div>
+  <div class="card"><h3>Add milestone</h3>
+    <form method="post" action="/plans/{{ plan.id }}/milestones">{{ csrf(ctx) }}
+      <label class="f mb"><span>Milestone</span><input type="text" name="title" required maxlength="200"></label>
+      <label class="f mb"><span>Owner</span><select name="owner_id"><option value="">Company</option>{% for s in staff %}<option value="{{ s.id }}">{{ s.full_name }}</option>{% endfor %}</select></label>
+      <label class="f mb"><span>Due</span><input type="date" name="due_date" required></label>
+      <button class="btn sm" type="submit">Add milestone</button></form></div>
+  <div class="card"><h3>Edit plan</h3>
+    <form method="post" action="/plans/{{ plan.id }}">{{ csrf(ctx) }}
+      <label class="f mb"><span>Title</span><input type="text" name="title" required maxlength="200" value="{{ plan.title }}"></label>
+      <label class="f mb"><span>Focus</span><textarea name="summary">{{ plan.summary or '' }}</textarea></label>
+      <button class="btn sm" type="submit">Save</button></form></div>
+</section>
+{% endif %}
+{% endif %}
+{% endblock %}

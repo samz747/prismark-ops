@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, doc_list, uploader, status_badge, currency_fields %}
+{% block crumb %}<a href="/finance">Invoices</a> · <a href="/customers/{{ inv.customer_id }}">{{ inv.customer.company_name }}</a> · <a href="/orders/{{ inv.order_id }}">{{ inv.order.ref }}</a>{% endblock %}
+{% block heading %}Invoice {{ inv.number }}{% endblock %}
+{% block content %}
+<section class="grid g4 mb">
+  <div class="card kpi">{{ ico('invoice','navy','sm') }}<div><div class="k">Total (incl. VAT)</div><div class="v">{{ inv.total|money(inv.currency) }}</div>{% if inv.currency != 'TZS' %}<div class="s">{{ inv.total_tzs|tzs }}</div>{% endif %}</div></div>
+  <div class="card kpi">{{ ico('wallet','teal','sm') }}<div><div class="k">Paid & confirmed</div><div class="v">{{ settled|tzs }}</div></div></div>
+  <div class="card kpi">{{ ico('clock','sand','sm') }}<div><div class="k">Pending confirmation</div><div class="v">{{ inv.pending_tzs|tzs }}</div></div></div>
+  <div class="card kpi">{{ ico('alert','red' if balance > 1 and inv.due_date < today else 'pearl','sm') }}<div><div class="k">Balance</div><div class="v">{{ [balance,0]|max|tzs }}</div><div class="s">Due {{ inv.due_date|dfmt }}</div></div></div>
+</section>
+<section class="grid g-side">
+  <div>
+    <div class="card">
+      <h2>Lines</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Unit price</th><th class="num">Total</th></tr></thead>
+        <tbody>{% for i in inv.order.items %}<tr><td>{{ i.description }}</td><td class="num">{{ i.quantity|num }} {{ i.unit }}</td><td class="num">{{ i.unit_price|money(inv.currency) }}</td><td class="num">{{ (i.quantity*i.unit_price)|money(inv.currency) }}</td></tr>{% endfor %}</tbody>
+        <tfoot>
+          <tr><td colspan="3">Subtotal</td><td class="num">{{ inv.subtotal|money(inv.currency) }}</td></tr>
+          <tr><td colspan="3">VAT {{ inv.vat_rate|num }}%</td><td class="num">{{ inv.vat_amount|money(inv.currency) }}</td></tr>
+          <tr><td colspan="3">Total</td><td class="num">{{ inv.total|money(inv.currency) }}</td></tr>
+        </tfoot>
+      </table></div>
+    </div>
+    <div class="card mt">
+      <h2>Payments</h2>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Method</th><th class="num">Amount</th><th class="num">WHT (TZS)</th><th>Recorded by</th><th>Status</th><th>Proof</th></tr></thead>
+        <tbody>{% for p in inv.payments %}
+          <tr><td class="nowrap">{{ p.paid_on|dfmt }}</td><td>{{ p.method }}<div class="small muted">{{ p.reference or '' }}</div></td>
+            <td class="num">{{ p.amount|money(p.currency) }}</td><td class="num">{{ p.withholding_tax|tzs(False) }}</td>
+            <td>{{ p.recorded_by.full_name }}<div class="small muted">{{ p.recorded_at|eat }}</div></td>
+            <td>{% if p.status == 'pending' %}<span class="badge warn">Pending MD confirmation</span>{% else %}{{ status_badge(p.status) }}<div class="small muted">{{ p.confirmed_by.full_name if p.confirmed_by }} {{ p.confirmed_at|eat if p.confirmed_at }}</div>{% endif %}
+              {% if p.review_note %}<div class="small">{{ p.review_note }}</div>{% endif %}
+              {% if ctx.is_admin and p.status == 'pending' %}
+              <form method="post" action="/finance/payments/{{ p.id }}/review" class="actions mt">{{ csrf(ctx) }}<input type="hidden" name="back" value="/finance/invoices/{{ inv.id }}">
+                <input type="text" name="note" placeholder="Note (optional)" maxlength="300">
+                <button class="btn sm good" name="decision" value="confirmed">Confirm received</button>
+                <button class="btn sm danger" name="decision" value="rejected">Reject</button></form>{% endif %}</td>
+            <td>{% for d in pdocs.get(p.id, []) %}<a class="badge proof-ok" href="/files/{{ d.id }}" target="_blank" rel="noopener">{{ icon('clip') }} Proof</a>{% else %}<span class="badge proof-missing">{{ icon('alert') }} Missing</span>
+              {% if can_write %}<details class="inline-attach"><summary>Attach</summary><form method="post" action="/files/upload" enctype="multipart/form-data">{{ csrf(ctx) }}<input type="hidden" name="entity" value="payment"><input type="hidden" name="entity_id" value="{{ p.id }}"><input type="hidden" name="doc_type" value="payment_proof"><input type="hidden" name="back" value="/finance/invoices/{{ inv.id }}"><input type="file" name="file" required><button class="btn sm teal" type="submit">Upload</button></form></details>{% endif %}{% endfor %}</td></tr>
+        {% else %}<tr><td colspan="7" class="empty">No payments recorded.</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% if can_write and balance > 1 %}
+        {% if not has_tax_invoice %}
+        <div class="flash err mt">{{ icon('lock') }} Upload the tax invoice / EFD receipt first. Payment cannot be recorded without it.</div>
+        {% else %}
+        <details class="box mt" open><summary>Record a payment received</summary>
+          <form method="post" action="/finance/invoices/{{ inv.id }}/payments" enctype="multipart/form-data" class="form-grid three">{{ csrf(ctx) }}
+            <label class="f"><span>Amount received</span><input type="text" inputmode="decimal" name="amount" required></label>
+            {{ currency_fields(usd_rate, inv.currency, inv.exchange_rate) }}
+            <label class="f"><span>Withholding tax deducted (TZS)</span><input type="text" inputmode="decimal" name="withholding_tax" value="0"></label>
+            <label class="f"><span>Date received</span><input type="date" name="paid_on" value="{{ today.isoformat() }}"></label>
+            <label class="f"><span>Method</span><select name="method">{% for m in METHODS %}<option>{{ m }}</option>{% endfor %}</select></label>
+            <label class="f"><span>Reference</span><input type="text" name="reference" maxlength="80"></label>
+            <label class="f full"><span>Payment proof (bank slip, remittance advice)</span><input type="file" name="file"></label>
+            <div class="full actions"><button class="btn" type="submit">Record payment</button><span class="hint">It stays pending until the MD confirms receipt.</span></div>
+          </form></details>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  <div>
+    <div class="card"><h3>Invoice documents</h3>
+      {{ doc_list(docs, ctx, '/finance/invoices/%d'|format(inv.id)) }}
+      {% if not has_tax_invoice %}<p><span class="badge proof-missing">{{ icon('alert') }} Tax invoice missing</span></p>{% endif %}
+      {% if can_write %}{{ uploader(ctx, 'invoice', inv.id, '/finance/invoices/%d'|format(inv.id), ['tax_invoice','other'], 'tax_invoice') }}{% endif %}
+    </div>
+    <div class="card mt"><dl class="dl">
+      <dt>Customer</dt><dd><a href="/customers/{{ inv.customer_id }}">{{ inv.customer.company_name }}</a></dd>
+      <dt>TIN / VRN</dt><dd>{{ inv.customer.tin or '-' }} / {{ inv.customer.vrn or '-' }}</dd>
+      <dt>Order</dt><dd><a href="/orders/{{ inv.order_id }}">{{ inv.order.ref }}</a></dd>
+      <dt>LPO</dt><dd>{{ inv.order.lpo_number or '-' }}</dd>
+      <dt>Issued</dt><dd>{{ inv.issue_date|dfmt }}</dd>
+      <dt>Rate</dt><dd>{{ inv.exchange_rate|num if inv.currency != 'TZS' else '-' }}</dd>
+    </dl></div>
+  </div>
+</section>
+{% endblock %}

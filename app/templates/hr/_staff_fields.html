@@ -1,0 +1,11 @@
+<div class="form-grid">
+  <label class="f full"><span>Full name</span><input type="text" name="full_name" required maxlength="120" value="{{ s.full_name if s }}"></label>
+  <label class="f"><span>Position</span><input type="text" name="position" maxlength="80" value="{{ s.position or '' if s }}"></label>
+  <label class="f"><span>Department</span><input type="text" name="department" maxlength="80" value="{{ s.department or '' if s }}"></label>
+  <label class="f"><span>Employment type</span><select name="employment_type">{% for t in ['permanent','contract','casual','intern'] %}<option value="{{ t }}" {{ 'selected' if s and s.employment_type == t }}>{{ t|capitalize }}</option>{% endfor %}</select></label>
+  <label class="f"><span>Start date</span><input type="date" name="start_date" value="{{ s.start_date.isoformat() if s and s.start_date }}"></label>
+  <label class="f"><span>Basic salary (TZS per month)</span><input type="text" inputmode="decimal" name="basic_salary" required value="{{ s.basic_salary|num if s }}"></label>
+  <label class="f"><span>Phone</span><input type="tel" name="phone" maxlength="40" value="{{ s.phone or '' if s }}"></label>
+  <label class="f"><span>TIN</span><input type="text" name="tin" maxlength="30" value="{{ s.tin or '' if s }}"></label>
+  <label class="f"><span>NSSF number</span><input type="text" name="nssf_number" maxlength="30" value="{{ s.nssf_number or '' if s }}"></label>
+</div>

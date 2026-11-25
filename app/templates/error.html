@@ -1,0 +1,8 @@
+{% from "macros.html" import ico %}<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }} · Prismark</title><link rel="stylesheet" href="/static/css/app.css"></head>
+<body><div class="error-page"><div class="card">
+  <div class="mb">{{ ico('lock' if code == 403 else 'alert', 'navy', 'lg') }}</div>
+  <h1>{{ title }}</h1><p class="muted">{{ message }}</p>
+  <div class="actions center"><a class="btn" href="/">Back to dashboard</a></div>
+</div></div></body></html>

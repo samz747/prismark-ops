@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico, csrf, proof, doc_list, uploader, stage_badge, currency_fields %}
+{% block crumb %}<a href="/orders">Orders</a> · <a href="/customers/{{ o.customer_id }}">{{ o.customer.company_name }}</a>{% endblock %}
+{% block heading %}{{ o.ref }} · {{ o.title }}{% endblock %}
+{% block top_actions %}{% if can_write and (not o.invoices or ctx.is_admin) %}<a class="btn ghost" href="/orders/{{ o.id }}/edit">Edit order</a>{% endif %}{% endblock %}
+{% block content %}
+{% if o.is_cancelled %}<div class="flash err">{{ icon('x') }} This order is cancelled.</div>{% endif %}
+{% if o.customer.attention_note %}<div class="attention">{{ ico('alert','sand','sm') }}<div><strong>Customer attention</strong><br>{{ o.customer.attention_note }}</div></div>{% endif %}
+
+<div class="card">
+  <div class="card-head"><h2>Progress</h2>{{ stage_badge(o.stage, STAGE_LABEL[o.stage]) }}
+    <span class="badge {{ 'teal' if o.sourcing_type == 'international' else 'sand' }}">{{ o.sourcing_type|capitalize }}{{ ' · ' ~ o.origin if o.origin }}</span></div>
+  <div class="stepper">
+    {% for s in steps %}
+    <div class="step {{ s.state }}">
+      <div class="dot">{% if s.state == 'done' %}{{ icon('check') }}{% else %}{{ loop.index }}{% endif %}</div>
+      <div class="lbl">{{ s.label }}</div>
+      {% if s.doc %}<div class="doc">{% if s.has_doc %}<span class="badge proof-ok">{{ icon('clip') }} Doc</span>{% elif s.state == 'done' %}<span class="badge proof-missing">{{ icon('alert') }} Missing</span>{% else %}<span class="badge muted">Doc needed</span>{% endif %}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<section class="grid g-side mt">
+  <div>
+    {% if can_write and not o.is_cancelled and o.stage in MANUAL_STAGES and nxt and nxt != 'invoiced' %}
+    <div class="card">
+      <div class="card-head">{{ ico('arrow','teal','sm') }}<h3>Close "{{ STAGE_LABEL[o.stage] }}" and move to "{{ STAGE_LABEL[nxt] }}"</h3></div>
+      <form method="post" action="/orders/{{ o.id }}/advance" enctype="multipart/form-data">{{ csrf(ctx) }}
+        <div class="form-grid">
+          {% if o.stage == 'quotation' %}
+          <label class="f"><span>LPO number</span><input type="text" name="lpo_number" maxlength="60" value="{{ o.lpo_number or '' }}"></label>
+          <label class="f"><span>LPO date</span><input type="date" name="lpo_date" value="{{ today.isoformat() }}"></label>
+          {% endif %}
+          <label class="f"><span>{{ DOC_TYPES[steps|selectattr('key','equalto',o.stage)|map(attribute='doc')|first] }} (optional now)</span><input type="file" name="file"></label>
+          <label class="f"><span>Note</span><input type="text" name="note" maxlength="300"></label>
+        </div>
+        <p class="hint">You can close a stage without its document. The invoice stays locked until every document before it is uploaded.</p>
+        <div class="form-actions"><button class="btn teal" type="submit">Close stage</button></div>
+      </form>
+    </div>
+    {% endif %}
+
+    {% if o.stage == 'delivery' and not o.is_cancelled %}
+    <div class="card {{ 'mt' if can_write }}">
+      <div class="card-head">{{ ico('invoice','navy','sm') }}<h3>Raise invoice</h3></div>
+      {% if gate_missing %}
+        <div class="flash err">{{ icon('lock') }} Invoice locked until these documents are uploaded: {{ gate_missing|map('extract', DOC_TYPES)|join(', ') }}.</div>
+      {% elif can_invoice %}
+      <form method="post" action="/orders/{{ o.id }}/invoice" enctype="multipart/form-data">{{ csrf(ctx) }}
+        <div class="form-grid three">
+          <label class="f"><span>Invoice number (blank = automatic)</span><input type="text" name="number" maxlength="40"></label>
+          <label class="f"><span>Issue date</span><input type="date" name="issue_date" value="{{ today.isoformat() }}"></label>
+          <label class="f"><span>Due date</span><input type="date" name="due_date" value="{{ default_due.isoformat() }}"></label>
+          <label class="check"><input type="checkbox" name="vat_exempt" value="1"> VAT exempt (otherwise {{ vat_rate }}%)</label>
+          <label class="f full"><span>Tax invoice / EFD receipt</span><input type="file" name="file"></label>
+        </div>
+        <p class="hint">Subtotal {{ subtotal|money(o.currency) }} plus VAT. All earlier documents are in place.</p>
+        <div class="form-actions"><button class="btn navy" type="submit">Raise invoice</button></div>
+      </form>
+      {% else %}<p class="muted">The invoice can be raised by staff with invoice access.</p>{% endif %}
+    </div>
+    {% endif %}
+
+    <div class="card mt">
+      <div class="card-head"><h2>Items</h2><span class="muted small">Prices in {{ o.currency }}{% if o.currency != 'TZS' %} at {{ o.exchange_rate|num }} TZS/USD{% endif %}</span></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Description</th><th class="num">Qty</th><th>Unit</th><th class="num">Unit price</th><th class="num">Line total</th></tr></thead>
+        <tbody>{% for i in o.items %}<tr><td>{{ i.description }}</td><td class="num">{{ i.quantity|num }}</td><td>{{ i.unit }}</td>
+          <td class="num">{{ i.unit_price|money(o.currency) }}</td><td class="num">{{ (i.quantity * i.unit_price)|money(o.currency) }}</td></tr>{% endfor %}</tbody>
+        <tfoot><tr><td colspan="4">Total (excl. VAT) · TZS equivalent {{ revenue|tzs }}</td><td class="num">{{ subtotal|money(o.currency) }}</td></tr></tfoot>
+      </table></div>
+    </div>
+
+    <div class="card mt" id="costs">
+      <div class="card-head"><h2>Costs to fulfil</h2></div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Date</th><th>Category</th><th>Supplier / detail</th><th class="num">Amount</th><th class="num">TZS</th><th>Proof</th><th></th></tr></thead>
+        <tbody>{% for c in o.costs %}
+          <tr><td class="nowrap">{{ c.on_date|dfmt }}</td><td>{{ c.category }}</td><td>{{ c.supplier or '' }}<div class="small muted">{{ c.description or '' }}</div></td>
+            <td class="num">{{ c.amount|money(c.currency) }}</td><td class="num">{{ c.amount_tzs|tzs(False) }}</td>
+            <td>{% if cost_docs.get(c.id) %}{% for d in cost_docs[c.id] %}<a class="badge proof-ok" href="/files/{{ d.id }}" target="_blank" rel="noopener">{{ icon('clip') }} Receipt</a>{% endfor %}
+                {% else %}<span class="badge proof-missing">{{ icon('alert') }} Missing</span>
+                {% if can_write %}<details class="inline-attach"><summary>Attach</summary><form method="post" action="/files/upload" enctype="multipart/form-data">{{ csrf(ctx) }}
+                  <input type="hidden" name="entity" value="order_cost"><input type="hidden" name="entity_id" value="{{ c.id }}"><input type="hidden" name="doc_type" value="receipt">
+                  <input type="hidden" name="back" value="/orders/{{ o.id }}#costs"><input type="file" name="file" required><button class="btn sm teal" type="submit">Upload</button></form></details>{% endif %}
+                {% endif %}</td>
+            <td>{% if ctx.is_admin or ctx.level('orders') == 'edit' %}<form method="post" action="/orders/{{ o.id }}/costs/{{ c.id }}/delete" data-confirm="Remove this cost?">{{ csrf(ctx) }}<button class="link small">Remove</button></form>{% endif %}</td></tr>
+        {% else %}<tr><td colspan="7" class="empty">No costs recorded yet.</td></tr>{% endfor %}</tbody>
+        <tfoot><tr><td colspan="4">Total cost (excl. claimable VAT)</td><td class="num">{{ cost|tzs(False) }}</td><td colspan="2"></td></tr></tfoot>
+      </table></div>
+      {% if can_write %}
+      <details class="box mt"><summary>Record a cost</summary>
+        <form method="post" action="/orders/{{ o.id }}/costs" enctype="multipart/form-data" class="form-grid three">{{ csrf(ctx) }}
+          <label class="f"><span>Category</span><select name="category">{% for k in COST_CATEGORIES %}<option>{{ k }}</option>{% endfor %}</select></label>
+          <label class="f"><span>Supplier / payee</span><input type="text" name="supplier" maxlength="160"></label>
+          <label class="f"><span>Date</span><input type="date" name="on_date" value="{{ today.isoformat() }}"></label>
+          <label class="f"><span>Amount paid</span><input type="text" inputmode="decimal" name="amount" required></label>
+          {{ currency_fields(usd_rate, 'TZS', None, '') }}
+          <label class="f"><span>Claimable VAT inside the amount (TZS)</span><input type="text" inputmode="decimal" name="vat_amount" value="0"></label>
+          <label class="f full"><span>Description</span><input type="text" name="description" maxlength="250"></label>
+          <label class="f full"><span>Receipt / supplier invoice</span><input type="file" name="file"></label>
+          <div class="full actions"><button class="btn sm" type="submit">Save cost</button></div>
+        </form></details>
+      {% endif %}
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h3>Margin</h3>
+      <dl class="dl">
+        <dt>Selling value</dt><dd>{{ revenue|tzs }}</dd>
+        <dt>Costs</dt><dd>{{ cost|tzs }}</dd>
+        <dt>Gross profit</dt><dd><strong>{{ (revenue - cost)|tzs }}</strong></dd>
+        <dt>Margin</dt><dd>{{ ('%.1f%%'|format((revenue - cost) / revenue * 100)) if revenue else '-' }}</dd>
+      </dl>
+      <div class="sep"></div>
+      <dl class="dl">
+        <dt>Customer</dt><dd><a href="/customers/{{ o.customer_id }}">{{ o.customer.company_name }}</a></dd>
+        <dt>Sales</dt><dd>{{ o.sales.full_name if o.sales else '-' }}</dd>
+        <dt>Logistics</dt><dd>{{ o.logistics.full_name if o.logistics else '-' }}</dd>
+        <dt>Supplier</dt><dd>{{ o.supplier_name or '-' }}</dd>
+        <dt>Tender ref</dt><dd>{{ o.tender_ref or '-' }}</dd>
+        <dt>LPO</dt><dd>{{ o.lpo_number or '-' }}{% if o.lpo_date %} · {{ o.lpo_date|dfmt }}{% endif %}</dd>
+        <dt>Expected delivery</dt><dd>{{ o.expected_delivery|dfmt }}</dd>
+      </dl>
+      {% if o.notes %}<p class="mt small">{{ o.notes }}</p>{% endif %}
+    </div>
+
+    {% if o.invoices %}
+    <div class="card mt"><h3>Invoices</h3>
+      <ul class="list">{% for i in o.invoices %}<li>{{ ico('invoice','navy','sm') }}<div class="grow"><a class="row-link" href="/finance/invoices/{{ i.id }}">{{ i.number }}</a>
+        <div class="small muted">{{ i.total|money(i.currency) }} · due {{ i.due_date|dfmt }}</div></div></li>{% endfor %}</ul>
+    </div>
+    {% endif %}
+
+    <div class="card mt">
+      <h3>Order documents</h3>
+      {{ doc_list(docs, ctx, '/orders/%d'|format(o.id)) }}
+      {% if can_write %}{{ uploader(ctx, 'order', o.id, '/orders/%d'|format(o.id), ['rfq','quotation','lpo','supplier_invoice','shipping_docs','delivery_note','contract','other'], steps|selectattr('state','equalto','current')|map(attribute='doc')|first) }}{% endif %}
+    </div>
+
+    <div class="card mt">
+      <h3>Stage history</h3>
+      <div class="timeline mt">
+        <div class="t sand"><strong>Created</strong> <span class="small muted">· {{ o.created_at|eat }}</span></div>
+        {% for l in o.stage_logs %}
+        <div class="t {{ 'teal' if not l.missing_docs else 'sand' }}"><strong>{{ STAGE_LABEL.get(l.from_stage, l.from_stage) }} &rarr; {{ STAGE_LABEL.get(l.to_stage, l.to_stage) }}</strong>
+          <div class="small muted">{{ l.user.full_name }} · {{ l.at|eat }}</div>
+          {% if l.note %}<div class="small">{{ l.note }}</div>{% endif %}
+          {% if l.missing_docs %}<div class="small"><span class="badge proof-missing">Closed without: {{ l.missing_docs }}</span></div>{% endif %}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if ctx.is_admin %}
+    <div class="card mt"><h3>MD controls</h3>
+      {% if not o.invoices %}
+      <form method="post" action="/orders/{{ o.id }}/stage" class="mb">{{ csrf(ctx) }}
+        <label class="f mb"><span>Move to stage</span><select name="stage">{% for k in MANUAL_STAGES %}<option value="{{ k }}" {{ 'selected' if k == o.stage }}>{{ STAGE_LABEL[k] }}</option>{% endfor %}</select></label>
+        <label class="f mb"><span>Reason</span><input type="text" name="note" required maxlength="300"></label>
+        <button class="btn sm navy" type="submit">Change stage</button>
+      </form>{% endif %}
+      <form method="post" action="/orders/{{ o.id }}/cancel" data-confirm="{{ 'Restore' if o.is_cancelled else 'Cancel' }} this order?">{{ csrf(ctx) }}
+        <input type="hidden" name="note" value="">
+        <button class="btn sm {{ 'good' if o.is_cancelled else 'danger' }}" type="submit">{{ 'Restore order' if o.is_cancelled else 'Cancel order' }}</button></form>
+    </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% from "macros.html" import icon, ico %}
+{% block crumb %}{{ period_label }}{% endblock %}
+{% block top_actions %}<a class="btn ghost sm" href="?period={{ prev }}">&larr;</a><a class="btn ghost sm" href="?period={{ next }}">&rarr;</a>{% endblock %}
+{% block content %}
+<div class="attention">{{ ico('landmark','sand','sm') }}<div><strong>Preparation figures for filing on the TRA portal.</strong><br>
+  The system prepares the numbers and schedules from recorded documents. Filing is done on the TRA portal, and a tax adviser should review the returns.</div></div>
+<section class="feature">
+  <div class="item">{{ ico('invoice','pearl','lg') }}<div class="k">Output VAT</div><div class="v">{{ d.output_vat|tzs(False) }}</div><div class="s">on {{ d.sales|length }} invoices</div></div>
+  <div class="item">{{ ico('receipt','sand','lg') }}<div class="k">Input VAT with receipts</div><div class="v">{{ d.input_vat_supported|tzs(False) }}</div><div class="s">{{ (d.input_vat_all - d.input_vat_supported)|tzs }} without receipt</div></div>
+  <div class="item">{{ ico('landmark','navy','lg') }}<div class="k">{{ 'VAT payable' if d.net_vat >= 0 else 'VAT credit' }}</div><div class="v">{{ d.net_vat|abs|tzs(False) }}</div><div class="s">TZS for {{ period_label }}</div></div>
+  <div class="item">{{ ico('pie','turq','lg') }}<div class="k">Income tax estimate (YTD)</div><div class="v">{{ d.cit_estimate|tzs(False) }}</div><div class="s">{{ d.cit_rate|num }}% of {{ d.ytd_profit|tzs }} profit</div></div>
+</section>
+
+<section class="grid g2 mt2">
+  <div class="card flush"><div class="card-head"><h2>Sales (output VAT)</h2><a class="btn ghost sm" href="/tax/export/sales?period={{ period }}">{{ icon('download') }} CSV</a></div><div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Invoice</th><th>Customer / VRN</th><th class="num">Net</th><th class="num">VAT</th><th></th></tr></thead>
+    <tbody>{% for r in d.sales %}<tr><td class="nowrap">{{ r.date|dfmt }}</td><td><a href="{{ r.link }}">{{ r.number }}</a></td><td>{{ r.customer }}<div class="small muted">{{ r.vrn }}</div></td>
+      <td class="num">{{ r.net|tzs(False) }}</td><td class="num">{{ r.vat|tzs(False) }}</td><td>{% if not r.doc %}<span class="badge proof-missing">No tax invoice</span>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty">No invoices this month.</td></tr>{% endfor %}</tbody></table></div></div>
+  <div class="card flush"><div class="card-head"><h2>Purchases (input VAT)</h2><a class="btn ghost sm" href="/tax/export/purchases?period={{ period }}">{{ icon('download') }} CSV</a></div><div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Ref</th><th>Supplier</th><th class="num">Net</th><th class="num">VAT</th><th></th></tr></thead>
+    <tbody>{% for r in d.purchases %}<tr><td class="nowrap">{{ r.date|dfmt }}</td><td><a href="{{ r.link }}">{{ r.ref }}</a></td><td>{{ r.supplier }}</td>
+      <td class="num">{{ r.net|tzs(False) }}</td><td class="num">{{ r.vat|tzs(False) }}</td><td>{% if not r.doc %}<span class="badge proof-missing">Not claimable: no receipt</span>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="6" class="empty">No purchases with VAT this month.</td></tr>{% endfor %}</tbody></table></div></div>
+</section>
+
+<section class="grid g2 mt2">
+  <div class="card"><div class="card-head">{{ ico('idcard','navy','sm') }}<h2>Payroll taxes</h2></div>
+    {% if d.payroll %}
+    <dl class="dl">
+      <dt>Status</dt><dd>{{ d.payroll.status|capitalize }}</dd>
+      <dt>Gross emoluments</dt><dd>{{ d.payroll.gross|tzs }}</dd>
+      <dt>PAYE</dt><dd>{{ d.payroll.paye|tzs }}</dd>
+      <dt>SDL</dt><dd>{{ d.payroll.sdl|tzs }}</dd>
+      <dt>NSSF (10% + 10%)</dt><dd>{{ (d.payroll.nssf_employee + d.payroll.nssf_employer)|tzs }}</dd>
+      <dt>WCF</dt><dd>{{ d.payroll.wcf|tzs }}</dd>
+    </dl>
+    <p class="hint">PAYE and SDL by the 7th, NSSF by the 15th of the following month.</p>
+    {% else %}<p class="muted">No payroll calculated for this month.</p>{% endif %}
+  </div>
+  <div class="card"><div class="card-head">{{ ico('coins','teal','sm') }}<h2>Withholding tax deducted by customers</h2></div>
+    <div class="kpi"><div><div class="v">{{ d.wht|tzs }}</div><div class="s">From confirmed payments this month. Keep the WHT certificates as proof for offsetting income tax.</div></div></div>
+  </div>
+</section>
+{% endblock %}
