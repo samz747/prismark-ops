@@ -206,3 +206,10 @@ def test_activity_log_records_actions():
     md = login("md")
     body = md.get("/admin/activity?action=changes").text
     assert "Recorded payment" in body or "Raised invoice" in body
+
+
+def test_user_page_shows_the_selected_user():
+    md = login("md")
+    page = md.get("/admin/users/3").text   # Amina
+    assert 'value="Amina Juma"' in page
+    assert 'value="Sameer"' not in page

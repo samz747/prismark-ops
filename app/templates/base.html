@@ -10,7 +10,7 @@
 </head>
 <body>
 {% set path = request.url.path %}
-{% set u = ctx.user %}
+{% set me = ctx.user %}
 <div class="shell">
   <aside class="side">
     <a class="brand" href="/"><img src="/static/img/wordmark.png" alt="Prismark"><small>Operations</small></a>
@@ -63,9 +63,9 @@
       </div>
       <div class="actions">{% block top_actions %}{% endblock %}</div>
       <div class="who">
-        <div class="avatar">{{ u.initials }}</div>
-        <div><div class="name">{{ u.full_name }}</div>
-          <div class="role">{{ 'Managing Director' if u.is_superadmin else (u.role_list|map('extract', ROLES)|join(', ') or u.job_title or 'Staff') }}</div></div>
+        <div class="avatar">{{ me.initials }}</div>
+        <div><div class="name">{{ me.full_name }}</div>
+          <div class="role">{{ 'Managing Director' if me.is_superadmin else (me.role_list|map('extract', ROLES)|join(', ') or me.job_title or 'Staff') }}</div></div>
         <form method="post" action="/logout" class="inline">{{ csrf(ctx) }}
           <button class="btn ghost sm" type="submit" title="Sign out">{{ icon('logout') }}</button></form>
       </div>
