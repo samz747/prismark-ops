@@ -23,8 +23,12 @@ if not SECRET_KEY:
     SECRET_KEY = secrets.token_urlsafe(48)  # dev only: changes on every restart
 
 DATABASE_URL = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'data' / 'prismark.db'}")
-if DATABASE_URL.startswith("postgres://"):  # format used by some hosts, e.g. Render
-    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
+# Hosts such as Render give "postgres://" or "postgresql://" without a driver. SQLAlchemy 2.1 would then
+# pick the psycopg 3 driver, which is not installed, so name the installed psycopg2 driver explicitly.
+for _prefix in ("postgres://", "postgresql://"):
+    if DATABASE_URL.startswith(_prefix):
+        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len(_prefix):]
+        break
 
 # First super admin, for hosts without shell access. Used only while the database has no users.
 BOOTSTRAP_ADMIN_USERNAME = os.getenv("BOOTSTRAP_ADMIN_USERNAME", "").strip().lower()
